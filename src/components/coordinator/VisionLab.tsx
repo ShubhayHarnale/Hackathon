@@ -20,6 +20,13 @@ import {
   isScenarioName,
   type ScenarioName,
 } from "@/vision";
+import {
+  createBrowserVoiceProvider,
+  createVoiceCoach,
+  type VoiceCoach,
+  type VoiceLogEntry,
+  type VoiceProvider,
+} from "@/voice";
 
 type Source = "scripted" | "camera" | "file";
 
@@ -46,6 +53,9 @@ export function VisionLab({
   const [frames, setFrames] = useState<FrameLog[]>([]);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [voiceCaps, setVoiceCaps] = useState<VoiceProvider["capabilities"] | null>(null);
+  const [voiceLog, setVoiceLog] = useState<(VoiceLogEntry & { id: number })[]>([]);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -53,6 +63,9 @@ export function VisionLab({
   const loopRef = useRef<VisionLoop | null>(null);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const voiceRef = useRef<VoiceProvider | null>(null);
+  const coachRef = useRef<{ coach: VoiceCoach; detach: () => void } | null>(null);
+  const voiceLogId = useRef(0);
 
   const protocol = protocols.find((p) => p.id === protocolId) ?? null;
   const stepsById = useMemo(() => {
@@ -61,20 +74,60 @@ export function VisionLab({
     return map;
   }, [protocol]);
 
+  const detachVoice = useCallback(() => {
+    coachRef.current?.detach();
+    coachRef.current?.coach.dispose();
+    coachRef.current = null;
+  }, []);
+
   const teardown = useCallback(() => {
+    detachVoice();
     loopRef.current?.stop();
     loopRef.current = null;
     if (tickRef.current) clearInterval(tickRef.current);
     tickRef.current = null;
     runnerRef.current = null;
-  }, []);
+  }, [detachVoice]);
 
   const stopCamera = useCallback(() => {
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
   }, []);
 
-  useEffect(() => () => (teardown(), stopCamera()), [teardown, stopCamera]);
+  useEffect(
+    () => () => {
+      teardown();
+      stopCamera();
+      voiceRef.current?.dispose();
+      voiceRef.current = null;
+    },
+    [teardown, stopCamera],
+  );
+
+  /** Attaches a voice coach to the runner. Runs inside a click, so mobile allows speech. */
+  function attachVoice(runner: EngineRunner) {
+    detachVoice();
+    voiceRef.current ??= createBrowserVoiceProvider();
+    setVoiceCaps(voiceRef.current.capabilities);
+    const coach = createVoiceCoach({
+      provider: voiceRef.current,
+      stepsById,
+      dispatch: (input) => runner.dispatch(input),
+      now: () => Date.now(),
+      getState: () => runner.state,
+      onLog: (entry) =>
+        setVoiceLog((prev) => [{ ...entry, id: voiceLogId.current++ }, ...prev].slice(0, 40)),
+    });
+    const unsubscribe = runner.subscribe(coach.handleEvents);
+    coachRef.current = { coach, detach: unsubscribe };
+    coach.start();
+  }
+
+  function toggleVoice(on: boolean) {
+    setVoiceOn(on);
+    if (!on) detachVoice();
+    else if (runnerRef.current) attachVoice(runnerRef.current);
+  }
 
   async function startCamera() {
     setMediaError(null);
@@ -114,6 +167,7 @@ export function VisionLab({
     teardown();
     setEvents([]);
     setFrames([]);
+    setVoiceLog([]);
 
     const runner = new EngineRunner({ steps: protocol.steps, practiceSteps: PRACTICE_STEPS });
     runnerRef.current = runner;
@@ -158,6 +212,7 @@ export function VisionLab({
       onResult: (info) => setFrames((prev) => [info, ...prev].slice(0, 30)),
     });
     loopRef.current = loop;
+    if (voiceOn) attachVoice(runner);
 
     runner.dispatch({ type: practice ? "start_practice" : "start", at: Date.now() });
     setState(runner.state);
@@ -244,6 +299,15 @@ export function VisionLab({
             />
             Auto-confirm spoken steps after 1.5 s
           </label>
+          <label className="flex items-center gap-2 sm:col-span-2">
+            <input
+              type="checkbox"
+              checked={voiceOn}
+              onChange={(e) => toggleVoice(e.target.checked)}
+              className="size-5"
+            />
+            Voice on (speak prompts, listen for pause / continue / repeat / call my nurse / done)
+          </label>
         </div>
         {mediaError && (
           <p role="alert" className="font-bold text-danger">
@@ -284,6 +348,9 @@ export function VisionLab({
             Say “done”
           </LabButton>
           <LabButton onClick={() => send("call_nurse")}>Call nurse</LabButton>
+          {voiceOn && (
+            <LabButton onClick={() => coachRef.current?.coach.repeat()}>Repeat</LabButton>
+          )}
         </div>
       </section>
 
@@ -334,6 +401,32 @@ export function VisionLab({
           )}
         </div>
 
+        {voiceOn && (
+          <div className="rounded-xl border-2 border-border p-4">
+            <p className="mb-2 text-sm uppercase tracking-wide text-muted">
+              Voice (latest first)
+              {voiceCaps && (
+                <span className="ml-2 normal-case">
+                  · speak {voiceCaps.speak ? "yes" : "no"} · listen{" "}
+                  {voiceCaps.listen ? "yes" : "no"}
+                </span>
+              )}
+            </p>
+            {voiceCaps && !voiceCaps.listen && (
+              <p className="mb-2 rounded-lg bg-warning-bg px-3 py-2 text-warning-fg">
+                This browser can’t listen (try Chrome, Edge or Safari over HTTPS). Use the buttons.
+              </p>
+            )}
+            <ul className="max-h-48 overflow-auto font-mono text-sm" aria-label="Voice log">
+              {voiceLog.map((entry) => (
+                <li key={entry.id} className={entry.kind === "error" ? "text-danger" : ""}>
+                  {describeVoice(entry)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
         <div className="rounded-xl border-2 border-border p-4">
           <p className="mb-2 text-sm uppercase tracking-wide text-muted">Frames (latest first)</p>
           <ul className="max-h-48 overflow-auto font-mono text-sm">
@@ -377,6 +470,19 @@ export function VisionLab({
       </section>
     </div>
   );
+}
+
+function describeVoice(entry: VoiceLogEntry): string {
+  switch (entry.kind) {
+    case "spoken":
+      return `🔊 [${entry.utterance.priority}] ${entry.utterance.text}`;
+    case "heard":
+      return `🎤 “${entry.transcript}”`;
+    case "command":
+      return `→ ${entry.command}: ${entry.outcome}`;
+    case "error":
+      return `⚠ ${entry.error}${entry.detail ? ` (${entry.detail})` : ""}`;
+  }
 }
 
 function describeStop(state: EngineState): string {
