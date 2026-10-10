@@ -1,31 +1,46 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
-import { DemoBanner } from "@/components/DemoBanner";
+import { PatientApp } from "@/components/patient/PatientApp";
+import { PatientLoading, SessionMessage } from "@/components/patient/SessionMessage";
+import { HEADINGS, NOTES } from "@/patient/copy";
+import { loadPatientSession, visionFromQuery } from "@/patient/server";
 
-// Patient flow (mobile). Phase 4 replaces this placeholder with the step-by-step UI.
-export default function PatientSessionPage({ params }: PageProps<"/s/[token]">) {
+// Patient flow (mobile), reached through the unguessable session link.
+export default function PatientSessionPage({ params, searchParams }: PageProps<"/s/[token]">) {
   return (
     <div className="flex flex-1 flex-col">
-      <DemoBanner />
-      <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-10 text-center">
-        <h1 className="text-4xl font-bold">Welcome</h1>
-        <p className="max-w-md text-2xl">
-          We will guide you through your procedure one step at a time.
-        </p>
-        {/* Params are runtime data under Cache Components, so they render inside Suspense. */}
-        <Suspense fallback={null}>
-          {params.then(({ token }) => (
-            <p className="text-lg text-muted">Session link: {token}</p>
-          ))}
-        </Suspense>
-        <button
-          type="button"
-          disabled
-          className="min-h-16 w-full max-w-sm rounded-2xl bg-primary px-8 text-3xl font-bold text-primary-foreground disabled:opacity-60"
-        >
-          Start
-        </button>
-        <p className="text-lg text-muted">Coming in Phase 4.</p>
-      </main>
+      {/* Params are runtime data under Cache Components, so they render inside Suspense. */}
+      <Suspense fallback={<PatientLoading />}>
+        {Promise.all([params, searchParams]).then(([{ token }, query]) => (
+          <PatientSession token={token} query={query} />
+        ))}
+      </Suspense>
     </div>
+  );
+}
+
+async function PatientSession({
+  token,
+  query,
+}: {
+  token: string;
+  query: Record<string, string | string[] | undefined>;
+}) {
+  await connection();
+  const data = await loadPatientSession(token);
+  if (!data) {
+    return <SessionMessage heading={HEADINGS.linkNotWorking} body={NOTES.linkNotWorking} />;
+  }
+  const { session, protocol } = data;
+  if (session.status === "completed" || session.status === "stopped") {
+    return <SessionMessage heading={HEADINGS.sessionEnded} body={NOTES.sessionEnded} />;
+  }
+  return (
+    <PatientApp
+      token={token}
+      sessionId={session.id}
+      protocol={protocol.protocol}
+      vision={visionFromQuery(query, session.mode)}
+    />
   );
 }

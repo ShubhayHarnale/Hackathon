@@ -139,6 +139,32 @@ npm run vision:eval -- --protocol mock-autoinjector --frames eval/take1
 ```
 It reports accuracy, current-step recall, the **false "later step" rate** (the one that causes wrong stops) and latency at p50 and p95.
 
+## Patient app (`src/patient/`, Phase 4)
+The phone flow at `/s/[token]`: one step on screen at a time, big text, and **Pause** and **Call my nurse** always in reach.
+
+```
+welcome → camera + mic explainer → camera check + practice (hands visible?) → ready
+  → the procedure, one step at a time → all done | stop: "Call your study nurse at …"
+```
+- **Getting in:**
+  - `/s/demo` creates a fresh session for the demo participant (p-001) and the mock autoinjector on every visit.
+  - `/s/[token]` opens a session link; a bad link or a finished session shows a plain message and the nurse's number.
+  - `POST /api/coordinator/sessions` `{ participantId, protocolId, mode }` → `{ sessionId, link }` (behind the coordinator gate; `GET` lists sessions with event and evidence counts).
+- **Demo control:** `?vision=scripted&scenario=<name>` (no camera needed; the default for `/s/demo` and for `mock` sessions) or `?vision=server` (front camera → `/api/vision/check`; the default for `live` sessions). Scenarios are the vision ones: `happy`, `flicker`, `poor-camera`, `skip-critical`, `early-release`, `outage`.
+- **`PatientController`** owns the `EngineRunner`, the `VisionLoop`, the 250 ms tick and persistence. Every input (frames, ticks, buttons, voice) goes through `controller.dispatch`, and screens render from one snapshot (`useSyncExternalStore`).
+  - **Voice hooks up here (Phase 5):** `addEngineListener` receives every engine event batch, and `command("pause" | "continue" | "repeat" | "call_nurse" | "done", "voice")` sends the same input as the matching button.
+- **The screen is derived, not stored:** `deriveScreen` maps engine state plus the pre-run UI phase to one screen. The engine wins: stopped, completed and paused screens can't be skipped by the UI.
+- **Persistence never blocks the patient:**
+  - Events are batched (300 ms debounce; stops and nurse calls go immediately), posted in order with one request in flight, and retried with backoff (1 s doubling to 15 s). A dead link (4xx) drops the batch rather than wedging the queue.
+  - `POST /api/patient/[token]/events` re-validates every event with Zod (a discriminated union mirroring the engine's events), appends idempotently on `eventSeq`, and moves the session's status, start and end times and stop reason.
+  - On `step_confirmed` and `critical_miss` the matching frame is uploaded to `POST /api/patient/[token]/evidence` (JPEG checked by its magic bytes; one frame per step and seq).
+  - When the connection returns the queue flushes, and on page hide any leftovers go by `sendBeacon`.
+- **Error states:** camera denied (how to re-allow it, plus the nurse), offline banner (frame errors pause the engine anyway), and vision unavailable (paused with `SCRIPTS.visionUnavailable` and a **Continue** button).
+- **Accessibility:** body text is 20 px or larger (24 px for most), targets are 64 px, contrast uses the AA tokens, the current step and corrections are `aria-live`, each screen's heading takes focus, and motion respects `prefers-reduced-motion`. Also: Wake Lock while running, and a mirrored front-camera preview (`playsInline muted autoPlay`).
+- **Copy:** spoken and explanatory sentences come from `src/voice/scripts.ts`. Button labels and screen-only notes are in `src/patient/copy.ts`.
+
+**Tests:** screen derivation, timers and countdown formatting, the outbox's batching, dedupe, backoff and drop rules, the session status patch, the controller end to end on scripted vision (events and evidence persisted, critical-miss frame uploaded, commands, corrections), and the patient and coordinator API routes (valid token, wrong token, idempotent events, non-JPEG evidence).
+
 ## Build phases
 0. Scaffold, env config, folder structure, interfaces for every module
 1. **Step engine + thorough unit tests** (flicker, skipped critical step, pause/resume timers, retries leading to needs_human, fast-check invariants)
