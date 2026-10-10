@@ -186,7 +186,7 @@ describe("formatting", () => {
   });
 
   it("builds tel: links from display numbers", () => {
-    expect(telHref("+1-555-0100")).toBe("tel:+15550100");
+    expect(telHref("+1-202-555-0100")).toBe("tel:+12025550100");
     expect(telHref("(555) 010 0100")).toBe("tel:5550100100");
   });
 });

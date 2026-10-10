@@ -137,7 +137,7 @@ export function describeDuration(ms: number): string {
   return s === 0 ? plural(m, "minute") : `${plural(m, "minute")} ${plural(s, "second")}`;
 }
 
-/** A tel: href from a display number like "+1-555-0100". */
+/** A tel: href from a display number like "+1-202-555-0100". */
 export function telHref(phone: string): string {
   return `tel:${phone.replace(/[^\d+]/g, "")}`;
 }

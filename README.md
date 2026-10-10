@@ -193,7 +193,14 @@ microphone → VoiceProvider (transcript) → parseCommand → VoiceCoach → en
   - `POST /api/voice/token` mints a **single-use, 30-minute** ephemeral token, locked to `GEMINI_LIVE_MODEL` and a config with only the five command functions. It's rate-limited per client.
   - The browser streams 16 kHz PCM16 from an AudioWorklet and acts on the model's function calls. `continue` and `done` count only when the app's own parser agrees with the input transcript.
   - **Live's audio output is discarded.** Speech still comes from `speechSynthesis`, reading the coach's text verbatim, because a speech model can paraphrase.
-  - Untested against the real API (no key in development). `LIVE_API_VERSION` in `gemini-live-config.ts` is `v1beta` per the docs, while the SDK comments say `v1alpha`.
+  - **Tested against the real API** (`gemini-3.8-live`, ephemeral tokens on `v1beta`; the SDK warns about `v1alpha`, but `v1beta` works). Each test streamed synthesized speech, and the results were:
+    - "Please pause" → pause
+    - "Help, call my nurse" → call_nurse
+    - "I'm done", "Okay, I'm finished" and "Checked, the date is fine" → done
+    - "Hold on, I am pressing the pen" → no command, as intended
+    - Commands land about 2.5–3.5 s after speech ends. A token takes about 0.15 s and connecting about 0.3 s.
+  - **High start-of-speech sensitivity is required:** with the defaults, sub-second phrases like "I'm done." were never transcribed.
+  - **The model sometimes speaks** despite its instructions. That audio is dropped and never played, but it uses quota (one test session hit "resource exhausted"). This Live model doesn't accept text-only output. Keep `browser` as the default and treat `gemini-live` as an upgrade for devices whose browser recognition is weak.
 - **Try it:** open `/s/demo` (voice is on in the patient app), or in the vision lab tick **Voice on** and start a scripted run; the lab's voice panel logs every line spoken, transcript heard and command handled.
 
 ## Build phases
@@ -252,7 +259,7 @@ See [`.env.example`](.env.example). With no `.env.local`, everything runs on moc
 | `GEMINI_*_MODEL` | compiler `gemini-3.8-flash`, vision `gemini-3.5-flash-lite`, live `gemini-3.8-live` | Model IDs, overridable |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | – | Server-only; required when `PERSISTENCE=supabase` |
 | `COORDINATOR_PASSCODE` | – | Hackathon gate for the dashboard |
-| `NEXT_PUBLIC_TRIAL_NURSE_PHONE` | `+1-555-0100` | The trial's 24/7 line (fictional number) |
+| `NEXT_PUBLIC_TRIAL_NURSE_PHONE` | `+1-202-555-0100` | The trial's 24/7 line (fictional number) |
 
 ### Testing on a phone
 The camera only works over HTTPS on a phone. Use a Vercel preview deployment or a tunnel to your dev server.

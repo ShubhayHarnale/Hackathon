@@ -65,7 +65,7 @@ export function serverEnv(): ServerEnv {
 
 const PublicEnvSchema = z.object({
   /** The trial's 24/7 study nurse line. Synthetic 555 number by default. */
-  NEXT_PUBLIC_TRIAL_NURSE_PHONE: z.string().min(3).default("+1-555-0100"),
+  NEXT_PUBLIC_TRIAL_NURSE_PHONE: z.string().min(3).default("+1-202-555-0100"),
   NEXT_PUBLIC_VOICE_PROVIDER: z.enum(["browser", "gemini-live"]).default("browser"),
 });
 

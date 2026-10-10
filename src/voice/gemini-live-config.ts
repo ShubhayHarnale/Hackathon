@@ -1,4 +1,9 @@
-import type { FunctionDeclaration, LiveConnectConfig, Modality } from "@google/genai";
+import type {
+  FunctionDeclaration,
+  LiveConnectConfig,
+  Modality,
+  StartSensitivity,
+} from "@google/genai";
 import { parseCommand } from "./commands";
 import type { VoiceCommand } from "./types";
 
@@ -63,6 +68,16 @@ export function liveConnectConfig(): LiveConnectConfig {
     systemInstruction: SYSTEM_INSTRUCTION,
     tools: [{ functionDeclarations }],
     inputAudioTranscription: {},
+    // Measured against the live API: with default detection, sub-second commands like
+    // "I'm done." were never transcribed. High start sensitivity picks them up; false
+    // starts are harmless because advancing commands still need our own parser to agree.
+    realtimeInputConfig: {
+      automaticActivityDetection: {
+        startOfSpeechSensitivity: "START_SENSITIVITY_HIGH" as StartSensitivity,
+        prefixPaddingMs: 40,
+        silenceDurationMs: 600,
+      },
+    },
   };
 }
 
