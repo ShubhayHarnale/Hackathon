@@ -76,7 +76,8 @@ export class PatientController {
   private readonly snapshotListeners = new Set<() => void>();
   private readonly results = new Map<number, FrameResult>();
   private readonly now: () => number;
-  private readonly stepsById: ReadonlyMap<string, Step>;
+  /** Practice and procedure steps by id (for the voice coach and the screens). */
+  readonly stepsById: ReadonlyMap<string, Step>;
   private tick: ReturnType<typeof setInterval> | null = null;
   private started = false;
   private snapshot: PatientSnapshot;

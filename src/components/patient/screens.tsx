@@ -67,11 +67,12 @@ export function CameraDeniedScreen({
 export function CameraCheckScreen({
   snapshot,
   step,
-  micDenied,
+  voiceNote,
 }: {
   snapshot: PatientSnapshot;
   step: Step | undefined;
-  micDenied: boolean;
+  /** Why voice commands won't work, if they won't. */
+  voiceNote: string | null;
 }) {
   const run = snapshot.engine.run;
   const hands = snapshot.lastFrame?.handsVisible;
@@ -98,7 +99,7 @@ export function CameraCheckScreen({
           {hands ? `✓ ${NOTES.handsSeen}` : NOTES.handsNotSeen}
         </p>
       )}
-      {micDenied && <p className="text-xl text-muted">{NOTES.micDenied}</p>}
+      {voiceNote && <p className="text-xl text-muted">{voiceNote}</p>}
     </section>
   );
 }

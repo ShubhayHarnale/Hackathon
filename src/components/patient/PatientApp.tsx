@@ -10,6 +10,7 @@ import { LABELS, NOTES } from "@/patient/copy";
 import { PatientController, type VisionConfig } from "@/patient/controller";
 import { EvidenceUploader, httpSendEvidence } from "@/patient/evidence";
 import { EventOutbox, httpSendEvents } from "@/patient/outbox";
+import { PatientVoice, type VoiceStatus } from "@/patient/voice";
 import { MAX_EVENTS_PER_BATCH } from "@/patient/schema";
 import { canPause, deriveScreen, type MediaPermission, type UiPhase } from "@/patient/screen";
 import type { Protocol } from "@/protocol/schema";
@@ -45,9 +46,10 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
   const [phase, setPhase] = useState<UiPhase>("welcome");
   const [camera, setCamera] = useState<MediaPermission>("unknown");
   const [mic, setMic] = useState<MediaPermission>("unknown");
+  const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("off");
   const online = useOnline();
 
-  const [{ controller, media, attachVideo, attachCanvas }] = useState(() => {
+  const [{ controller, media, voice, attachVideo, attachCanvas }] = useState(() => {
     const media = new PatientMedia(scripted);
     const controller = new PatientController({
       sessionId,
@@ -59,7 +61,14 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
       evidence: new EvidenceUploader({ send: httpSendEvidence(token) }),
     });
     media.label = () => currentStep(controller.runner.state)?.id ?? "";
-    return { controller, media, attachVideo: media.setVideo, attachCanvas: media.setCanvas };
+    const voice = new PatientVoice(controller, { onStatus: setVoiceStatus });
+    return {
+      controller,
+      media,
+      voice,
+      attachVideo: media.setVideo,
+      attachCanvas: media.setCanvas,
+    };
   });
   const snapshot = useSyncExternalStore(
     controller.subscribe,
@@ -75,18 +84,9 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
     return () => controller.suspend();
   }, [controller]);
 
-  // TODO(phase-5): attach VoiceCoach here (API from the phase 5 branch). Create it from the
-  // Start tap (browsers only allow speech after a user gesture), roughly:
-  //   const provider = createVoiceProvider();
-  //   const coach = createVoiceCoach({ provider, stepsById, now: () => Date.now(),
-  //     dispatch: (input) => controller.dispatch(input),
-  //     getState: () => controller.runner.state });
-  //   const offEvents = controller.addEngineListener(coach.handleEvents);
-  //   const offRepeat = controller.onRepeat(() => coach.repeat());
-  //   coach.start();
-  //   cleanup: offEvents(); offRepeat(); coach.dispose(); provider.dispose();
-  // Until then the Repeat button is wired to this no-op.
-  useEffect(() => controller.onRepeat(() => {}), [controller]);
+  // Voice (Phase 5): the coach is created on the first tap and started once the
+  // microphone question is answered; see PatientVoice.
+  useEffect(() => () => voice.dispose(), [voice]);
 
   usePersistenceLifecycle(controller, token);
   useWakeLock(
@@ -102,13 +102,14 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
     await media.setStream(result.stream);
     setCamera(result.camera);
     setMic(result.mic);
+    voice.start(result.mic === "granted");
     if (result.camera === "granted" || scripted) {
       setPhase("camera_check");
       if (controller.runner.state.status === "idle" && !controller.runner.state.practiceCompleted) {
         controller.startPractice();
       }
     }
-  }, [controller, media, scripted]);
+  }, [controller, media, voice, scripted]);
 
   const callNurse = useCallback(() => controller.command("call_nurse", "button"), [controller]);
   const instructionFor = (stepId: string) => controller.step(stepId)?.instruction;
@@ -137,7 +138,13 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
         />
 
         {screen.kind === "welcome" && (
-          <WelcomeScreen title={protocol.title} onStart={() => setPhase("permissions")} />
+          <WelcomeScreen
+            title={protocol.title}
+            onStart={() => {
+              voice.prime(); // inside the tap, so mobile browsers allow speech later
+              setPhase("permissions");
+            }}
+          />
         )}
         {screen.kind === "permissions" && (
           <PermissionsScreen
@@ -156,7 +163,13 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
           <CameraCheckScreen
             snapshot={snapshot}
             step={runStep}
-            micDenied={mic === "denied" || mic === "unavailable"}
+            voiceNote={
+              mic === "denied" || mic === "unavailable"
+                ? NOTES.micDenied
+                : voiceStatus === "speak_only"
+                  ? NOTES.voiceCommandsOff
+                  : null
+            }
           />
         )}
         {screen.kind === "ready" && <ReadyScreen onStart={() => controller.start()} />}

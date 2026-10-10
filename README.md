@@ -28,7 +28,7 @@ As a product it would need clinical validation, IRB approval, HIPAA compliance, 
 | `src/engine/` | Pure TypeScript step state machine. No I/O, fully unit tested. **The single source of truth.** |
 | `src/protocol/` | Compiles plain-text instructions into validated steps with Gemini structured output and Zod; the coordinator reviews and edits before publishing. |
 | `src/vision/` | `VisionProvider` (Gemini + scripted mock). About 1 frame/sec from the camera or a replayed video. |
-| `src/voice/` | `VoiceProvider` (browser speech by default, Gemini Live as a stretch goal). Commands: pause, continue, repeat, call my nurse. |
+| `src/voice/` | `VoiceProvider` (browser speech by default, Gemini Live as a stretch goal) and the `VoiceCoach`. Commands: pause, continue, repeat, call my nurse, done. |
 | `src/escalation/` | `NotifierProvider` (mock now, SMS/telephony stub for later). Policy for alerting the trusted contact. |
 | `src/persistence/` | `Repository` (in-memory + Supabase). |
 | `src/app/` | Patient flow `/s/[token]` (mobile), coordinator dashboard `/coordinator` (desktop), API routes. |
@@ -152,7 +152,7 @@ welcome → camera + mic explainer → camera check + practice (hands visible?) 
   - `POST /api/coordinator/sessions` `{ participantId, protocolId, mode }` → `{ sessionId, link }` (behind the coordinator gate; `GET` lists sessions with event and evidence counts).
 - **Demo control:** `?vision=scripted&scenario=<name>` (no camera needed; the default for `/s/demo` and for `mock` sessions) or `?vision=server` (front camera → `/api/vision/check`; the default for `live` sessions). Scenarios are the vision ones: `happy`, `flicker`, `poor-camera`, `skip-critical`, `early-release`, `outage`.
 - **`PatientController`** owns the `EngineRunner`, the `VisionLoop`, the 250 ms tick and persistence. Every input (frames, ticks, buttons, voice) goes through `controller.dispatch`, and screens render from one snapshot (`useSyncExternalStore`).
-  - **Voice hooks up here (Phase 5):** `addEngineListener` receives every engine event batch, and `command("pause" | "continue" | "repeat" | "call_nurse" | "done", "voice")` sends the same input as the matching button.
+  - **Voice (`PatientVoice`, Phase 5):** the coach hears every engine event batch through `addEngineListener`, sends its commands through `controller.dispatch` (so the screen follows), and the Repeat button reaches it through `onRepeat`. It is created on the welcome tap, so mobile browsers allow speech, and starts once the microphone question is answered. If the mic is denied or the browser can't listen, prompts are still spoken and the buttons do the rest.
 - **The screen is derived, not stored:** `deriveScreen` maps engine state plus the pre-run UI phase to one screen. The engine wins: stopped, completed and paused screens can't be skipped by the UI.
 - **Persistence never blocks the patient:**
   - Events are batched (300 ms debounce; stops and nurse calls go immediately), posted in order with one request in flight, and retried with backoff (1 s doubling to 15 s). A dead link (4xx) drops the batch rather than wedging the queue.
@@ -164,6 +164,37 @@ welcome → camera + mic explainer → camera check + practice (hands visible?) 
 - **Copy:** spoken and explanatory sentences come from `src/voice/scripts.ts`. Button labels and screen-only notes are in `src/patient/copy.ts`.
 
 **Tests:** screen derivation, timers and countdown formatting, the outbox's batching, dedupe, backoff and drop rules, the session status patch, the controller end to end on scripted vision (events and evidence persisted, critical-miss frame uploaded, commands, corrections), and the patient and coordinator API routes (valid token, wrong token, idempotent events, non-JPEG evidence).
+
+## Voice (`src/voice/`, Phase 5)
+```
+engine events → VoiceCoach → SpeechQueue → VoiceProvider.speak (scripts + reviewed step prompts only)
+microphone → VoiceProvider (transcript) → parseCommand → VoiceCoach → engine input (source: "voice")
+```
+- **The patient never hears model-generated text.** The coach speaks only app-authored lines from `scripts.ts` and each step's coordinator-reviewed `spokenPrompt`. A test drives the whole demo procedure by voice and checks that every spoken line comes from those sources.
+- **Events to speech:**
+  - `step_activated`: the step's prompt, plus "say done" for verbal steps
+  - `correction`: the scripted phrase for the issue code
+  - hold start: "Hold it there…", then "Three. Two. One." near the end
+  - `step_confirmed`: "Good." (or "Done. You can stop holding.")
+  - `paused`, `resumed` (and the step again), `nurse_called`, `vision_degraded`, `completed`: their scripts
+  - `critical_miss`, `needs_human`, `stopped`: an **urgent** stop line that cuts off anything playing
+- **Commands** (`commands.ts`), each also a button:
+  - `pause`, `continue`, `repeat`, `call_nurse` and `done`
+  - `done` sends `verbal_confirm` only for the current step, and only if that step asks for a spoken confirmation. It never advances a step the camera must confirm.
+  - **"hold" never means pause**, because a step says "press and hold", so "hold on" is ignored. A bare **"stop" means pause**: pausing is reversible and only an explicit "continue" resumes, while ending a session is never a voice command.
+  - Commands that move things forward (`continue`, `done`) are strict: short utterances only, with no negation ("I'm not done"), hedge ("almost done") or question ("am I done?"). Commands that slow things down match anywhere in a sentence. When a sentence holds several, the most cautious wins.
+- **Speech queue:** one line at a time. Urgent lines interrupt and clear the queue, and the same key isn't repeated within 6 s. Lines for a step that has ended are dropped, and at most one correction waits.
+- **Browser provider** (the default):
+  - Output: `speechSynthesis` at rate 0.9, with a natural English voice (novelty voices excluded).
+  - Input: `SpeechRecognition` (continuous), restarted with backoff when it ends.
+  - It ignores what it hears while speaking and for 600 ms after. On iOS it stops the recognizer while speaking, because record mode silences speech there.
+  - Firefox is speak-only (the buttons still work). Errors map to `not_supported`, `permission_denied`, `network` or `unknown`.
+- **Gemini Live** (stretch, `NEXT_PUBLIC_VOICE_PROVIDER=gemini-live`):
+  - `POST /api/voice/token` mints a **single-use, 30-minute** ephemeral token, locked to `GEMINI_LIVE_MODEL` and a config with only the five command functions. It's rate-limited per client.
+  - The browser streams 16 kHz PCM16 from an AudioWorklet and acts on the model's function calls. `continue` and `done` count only when the app's own parser agrees with the input transcript.
+  - **Live's audio output is discarded.** Speech still comes from `speechSynthesis`, reading the coach's text verbatim, because a speech model can paraphrase.
+  - Untested against the real API (no key in development). `LIVE_API_VERSION` in `gemini-live-config.ts` is `v1beta` per the docs, while the SDK comments say `v1alpha`.
+- **Try it:** open `/s/demo` (voice is on in the patient app), or in the vision lab tick **Voice on** and start a scripted run; the lab's voice panel logs every line spoken, transcript heard and command handled.
 
 ## Build phases
 0. Scaffold, env config, folder structure, interfaces for every module

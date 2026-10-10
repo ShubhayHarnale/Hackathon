@@ -40,6 +40,8 @@ export const NOTES = {
     "The camera is turned off for this page. To turn it on, tap the camera or lock icon next to the web address, choose Allow, then tap Try again.",
   cameraDeniedHelp: "If that doesn't work, call your study nurse.",
   micDenied: "The microphone is off. You can use the buttons on the screen instead.",
+  voiceCommandsOff:
+    "Voice commands aren't available here. You can use the buttons on the screen instead.",
   scriptedCamera: "Demo mode: the camera check is simulated.",
   offline:
     "No internet connection. Please stay on this page. Your progress will be sent when you're back online.",
