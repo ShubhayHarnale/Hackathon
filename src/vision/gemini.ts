@@ -20,7 +20,7 @@ export interface GeminiVisionOptions {
 }
 
 /**
- * Per-frame step check with Gemini. Low media resolution and minimal thinking keep
+ * Per-frame step check with Gemini. Low media resolution and low thinking keep
  * latency near a second; the engine's 3-frame rule absorbs single misreads.
  */
 export function createGeminiVisionProvider(options: GeminiVisionOptions): VisionProvider {
@@ -58,7 +58,8 @@ export function createGeminiVisionProvider(options: GeminiVisionOptions): Vision
               mime_type: "application/json",
               schema: z.toJSONSchema(visionResponseSchema(candidateIds)),
             },
-            generation_config: { temperature: 0, thinking_level: "minimal" },
+            // gemini-3.8-flash rejects "minimal"; "low" is its lowest supported level.
+            generation_config: { temperature: 0, thinking_level: "low" },
           },
           { timeout: timeoutMs, maxRetries: 0, fetchOptions: { signal } },
         );

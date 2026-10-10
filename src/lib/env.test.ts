@@ -9,7 +9,7 @@ describe("parseServerEnv", () => {
       PROTOCOL_COMPILER: "mock",
       PERSISTENCE: "memory",
       NOTIFIER: "mock",
-      GEMINI_VISION_MODEL: "gemini-3.8-flash",
+      GEMINI_VISION_MODEL: "gemini-3.5-flash-lite",
     });
     expect(env.GEMINI_API_KEY).toBeUndefined();
   });

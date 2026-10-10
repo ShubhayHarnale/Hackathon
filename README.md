@@ -45,7 +45,7 @@ Every provider has a mock and is selected by an env flag. **The app runs with no
 - **Ordering and latency:** frames are numbered and only one is in flight at a time. Stale results are dropped, and the server times out Gemini after 4 s.
 - **Security:** patients reach the app through an unguessable session link. All database access is server-side, and RLS denies everything by default. Step events are append-only. Evidence frames go in a private bucket behind signed URLs.
 - **Gemini:**
-  - Models: `gemini-3.8-flash` for compiling and vision, `gemini-3.8-live` for voice. Model IDs come from env vars.
+  - Models: `gemini-3.8-flash` for compiling, `gemini-3.5-flash-lite` for per-frame vision (measured ~0.8 s per frame vs 7–20 s or 503 "high demand" for 3.8 Flash), `gemini-3.8-live` for voice. Model IDs come from env vars.
   - Calls go through the Interactions API with `store: false`.
   - Gemini Live connects from the browser with short-lived ephemeral tokens.
 
@@ -116,7 +116,7 @@ Turns pasted procedure text into reviewed, versioned steps. **The compiler draft
   → VisionProvider → FrameResult { observedStepId | null, confidence, issue?, handsVisible? } → engine
 ```
 - **Providers:**
-  - `gemini` (server-only): Interactions API, `store: false`, low image resolution, `thinking_level: "minimal"`, temperature 0, a 4 s timeout, and structured output whose step ids are restricted to the candidates or `"none"`.
+  - `gemini` (server-only): Interactions API, `store: false`, low image resolution, `thinking_level: "low"` (3.8 Flash rejects `"minimal"`), temperature 0, a 4 s timeout, and structured output whose step ids are restricted to the candidates or `"none"`.
   - `mock`: always sees the current step.
   - **Scripted scenarios** (browser-side, no camera or key needed): `happy`, `flicker`, `poor-camera`, `skip-critical`, `early-release` and `outage`.
 - **What the model is asked:** the current step plus the next 3 steps, so skips are visible. It only classifies frames: it picks an id and an issue code from a fixed list, and never writes text for the patient.
@@ -192,7 +192,7 @@ See [`.env.example`](.env.example). With no `.env.local`, everything runs on moc
 | `NOTIFIER` | `mock` | Escalation delivery (a real SMS provider is stubbed) |
 | `NEXT_PUBLIC_VOICE_PROVIDER` | `browser` | `browser` speech or `gemini-live` |
 | `GEMINI_API_KEY` | – | Required when any Gemini provider is selected |
-| `GEMINI_*_MODEL` | `gemini-3.8-flash` / `gemini-3.8-live` | Model IDs, overridable |
+| `GEMINI_*_MODEL` | compiler `gemini-3.8-flash`, vision `gemini-3.5-flash-lite`, live `gemini-3.8-live` | Model IDs, overridable |
 | `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | – | Server-only; required when `PERSISTENCE=supabase` |
 | `COORDINATOR_PASSCODE` | – | Hackathon gate for the dashboard |
 | `NEXT_PUBLIC_TRIAL_NURSE_PHONE` | `+1-555-0100` | The trial's 24/7 line (fictional number) |

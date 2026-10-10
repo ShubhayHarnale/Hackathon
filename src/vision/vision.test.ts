@@ -254,7 +254,7 @@ describe("scripted scenarios end to end", () => {
 });
 
 describe("Gemini vision provider", () => {
-  it("sends one low-resolution frame with store:false and minimal thinking", async () => {
+  it("sends one low-resolution frame with store:false and low thinking", async () => {
     const create = vi.fn(async () => ({
       output_text:
         '{"observedStepId":"clean-site","confidence":0.9,"issue":"none","handsVisible":true}',
@@ -268,7 +268,7 @@ describe("Gemini vision provider", () => {
     const [params] = create.mock.calls[0] as unknown as [Record<string, unknown>];
     expect(params).toMatchObject({
       store: false,
-      generation_config: { thinking_level: "minimal", temperature: 0 },
+      generation_config: { thinking_level: "low", temperature: 0 },
       input: [{ type: "text" }, { type: "image", mime_type: "image/jpeg", resolution: "low" }],
     });
   });
