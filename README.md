@@ -148,6 +148,7 @@ It reports accuracy, current-step recall, the **false "later step" rate** (the o
 5. Voice (browser speech first; Gemini Live is a stretch goal)
 6. Supabase persistence + coordinator dashboard + evidence frames
 7. Escalation mock, demo/replay mode, accessibility pass, docs
+8. Showcase landing page at `/`: pitch, demo video (hosted on YouTube or Vercel Blob, not in git), how it works, safety principles, "try it" links into the live demo, roadmap, team. Built last so the video and screenshots show the finished product.
 
 **24h split (2 devs).**
 - **Dev A:** engine → vision → patient UI → voice.
