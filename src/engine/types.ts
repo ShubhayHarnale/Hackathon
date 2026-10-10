@@ -117,7 +117,7 @@ export type StopReason =
   | { readonly kind: "ended"; readonly by: "patient" | "coordinator" | "system" };
 
 /** Flags surfaced to the study team for review on the session timeline. */
-export type ReviewFlag = "skipped" | "interrupted_hold" | "nurse_called" | "paused";
+export type ReviewFlag = "skipped" | "interrupted_hold" | "nurse_called";
 
 export type EngineEventBody =
   | { readonly type: "practice_started" }

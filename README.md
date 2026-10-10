@@ -49,6 +49,44 @@ Every provider has a mock and is selected by an env flag. **The app runs with no
   - Calls go through the Interactions API with `store: false`.
   - Gemini Live connects from the browser with short-lived ephemeral tokens.
 
+## Step engine (`src/engine/`, Phase 1)
+A pure function `transition(state, input, config) → { state, events }`. It performs no I/O and never reads a clock: every input carries its own `at` timestamp. Lint rules enforce this. `EngineRunner` wraps the function and fans events out to the UI, voice and logging.
+
+- **Inputs:** `start_practice`, `start`, `frame`, `frame_error`, `verbal_confirm`, `pause`, `resume`, `call_nurse`, `tick`, `stop`
+- **States:** `idle → practice → idle → active ⇄ paused → completed | stopped(reason)`
+- **Events:**
+  - Progress: `step_activated`, `step_observed`, `step_confirmed` (records how the step was confirmed and which frame is the evidence)
+  - Coaching and review: `correction`, `hold_interrupted`, `step_missed`, `flagged`
+  - Pausing and the nurse: `paused`, `resumed`, `nurse_called`
+  - Vision status: `vision_degraded`, `vision_recovered`
+  - Stops: `critical_miss`, `needs_human`, `completed`, `stopped`
+  - Every event carries an `eventSeq`, so it can be saved exactly once.
+
+| Rule | Default |
+|---|---|
+| A step counts as seen after N consecutive matching frames with confidence ≥ 0.7 | 3 |
+| A later step seen N frames in a row is a skip. Skipping a critical step stops with `critical_miss`; skipped non-critical steps are flagged and the app follows the patient | 3 |
+| **Hold** (visual step + timer): the timer runs only while the step stays visible. Releasing early on a critical hold is a `critical_miss`. Losing sight of it for 3 frames is `needs_human` | 3 frames |
+| **Wait** (verbal step + timer): counted from when the step starts; also needs the spoken or tapped confirmation | – |
+| `needs_human` after this many frames on one step that don't show it | 25 |
+| `needs_human` after this many interrupted holds (non-critical steps) | 3 |
+| `needs_human` after this much active time on one step (plus the step's own timer) | 240 s |
+| Vision errors in a row before a system pause | 5 |
+| Vision outage before `needs_human` | 30 s |
+
+- **Pausing:** every timer freezes. Frames and ticks during a pause are ignored. **Only an explicit `resume` leaves a pause.** The engine never continues on its own.
+- **Stale and in-flight frames** (an older `seq`, or captured before the step started or before the resume) are dropped.
+- `stopped` and `completed` are terminal and ignore all further input.
+
+**Tests:**
+- 40 scenario tests, covering flicker, a skipped critical step, holds, pause and resume, every `needs_human` trigger, verbal and wait steps, practice mode and purity.
+- Property-based tests (fast-check) that run 1,000 random input sequences per test run. They check that:
+  - a critical step is never silently skipped
+  - completing the procedure means every critical step was confirmed
+  - steps resolve in order
+  - only `resume` leaves a pause
+  - terminal states never change
+
 ## Build phases
 0. Scaffold, env config, folder structure, interfaces for every module
 1. **Step engine + thorough unit tests** (flicker, skipped critical step, pause/resume timers, retries leading to needs_human, fast-check invariants)
