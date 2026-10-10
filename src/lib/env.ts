@@ -19,7 +19,7 @@ const ServerEnvSchema = z
 
     GEMINI_API_KEY: optionalString,
     GEMINI_COMPILER_MODEL: z.string().min(1).default("gemini-3.8-flash"),
-    GEMINI_VISION_MODEL: z.string().min(1).default("gemini-3.8-flash"),
+    GEMINI_VISION_MODEL: z.string().min(1).default("gemini-3.5-flash-lite"),
     GEMINI_LIVE_MODEL: z.string().min(1).default("gemini-3.8-live"),
 
     SUPABASE_URL: z.preprocess(emptyToUndefined, z.url().optional()),
