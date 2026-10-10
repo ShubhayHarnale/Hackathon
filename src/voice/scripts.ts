@@ -26,6 +26,7 @@ export const SCRIPTS = {
   practiceDone: "Great, the camera can see you. When you're ready, we'll start.",
   holdStarted: "Hold it there. I'll count the time for you.",
   holdDone: "Done. You can stop holding.",
+  holdInterrupted: "I couldn't see the hold, so the timer has stopped.",
   stepDone: "Good.",
   sayDone: 'Say "done" when you have finished, or tap the Done button.',
   paused: 'Paused. Say "continue" or tap Continue when you\'re ready.',
@@ -38,6 +39,15 @@ export const SCRIPTS = {
   stopNeedsHuman: "Please stop here. Your study nurse will help you with the next step.",
   stopEnded: "We've stopped. If you need help, call your study nurse.",
 } as const;
+
+/** Spoken in the last seconds of a hold. Indexed by seconds left (1..5). */
+export const COUNTDOWN_WORDS: Readonly<Record<number, string>> = {
+  1: "One.",
+  2: "Two.",
+  3: "Three.",
+  4: "Four.",
+  5: "Five.",
+};
 
 /** The stop screen's main line. The number comes from NEXT_PUBLIC_TRIAL_NURSE_PHONE. */
 export function stopHeadline(nursePhone: string): string {
