@@ -203,6 +203,36 @@ microphone → VoiceProvider (transcript) → parseCommand → VoiceCoach → en
   - **The model sometimes speaks** despite its instructions. That audio is dropped and never played, but it uses quota (one test session hit "resource exhausted"). This Live model doesn't accept text-only output. Keep `browser` as the default and treat `gemini-live` as an upgrade for devices whose browser recognition is weak.
 - **Try it:** open `/s/demo` (voice is on in the patient app), or in the vision lab tick **Voice on** and start a scripted run; the lab's voice panel logs every line spoken, transcript heard and command handled.
 
+## Study team dashboard (`/coordinator`, Phase 6)
+- **Sessions** (`/coordinator`):
+  - A form creates a patient link: participant, protocol, and demo or live camera. The raw link is shown once, because only its hash is stored.
+  - The list shows status, start time, duration, open flags (critical in red) and a plain-language outcome. It refreshes itself while any session is running.
+- **Session timeline** (`/coordinator/sessions/[id]`):
+  - **Flags**, open first: critical misses, `needs_human` stops, skipped steps, pauses during a critical hold, nurse calls, and pauses caused by vision errors. Each comes with a plain explanation, the time since the run started, the evidence frame if there is one, and a **Mark reviewed** button.
+  - **Steps:** each step's outcome (confirmed, skipped, stopped here, or not reached), when it was confirmed, how long it took, how it was confirmed (camera, timed hold, spoken, tapped) and an evidence thumbnail.
+  - The raw event log, in a collapsible section.
+  - The page updates live (every 2.5 s) while the session runs.
+- **Flags come from the append-only event log** (`src/dashboard/timeline.ts`, a pure function with tests). Only the review is stored (`flag_reviews`), so the record itself is never edited. Practice-run events are left out of the record.
+- **Evidence:** in memory mode it's served by `GET /api/coordinator/evidence/[id]`, behind the coordinator gate. In Supabase mode it's served with signed URLs that expire after 5 minutes, from a private bucket.
+
+### Supabase
+- **Schema** (`supabase/migrations/20261010000000_init.sql`):
+  - Tables: `participants`, `protocols` (versioned), `sessions` (stores only the link token's SHA-256 hash), `step_events`, `evidence_frames`, `alerts` and `flag_reviews`, plus a private `evidence` storage bucket.
+  - **RLS is on for every table with no policies**, so the anon and authenticated roles get nothing. The server uses the secret key.
+  - Triggers make `step_events` **append-only** and **published protocols immutable**, and a partial unique index allows only one draft per protocol.
+- **Verified against real Postgres 16:** the migration applies cleanly. Updating or deleting events, editing or deleting a published protocol, a second draft, a review of a non-existent event, and anon or authenticated reads are all rejected. Every column the repository uses exists.
+- **Not yet verified:** `SupabaseRepository` (`src/persistence/supabase.ts`) hasn't run against a hosted project. Its row mappers are unit-tested.
+- **Setup:**
+  1. Create a Supabase project.
+  2. Run the migration in its SQL editor, or with `npx supabase db push`.
+  3. In `.env.local`, set `SUPABASE_URL`, `SUPABASE_SECRET_KEY` and `PERSISTENCE=supabase`.
+  4. Load the demo participants and protocols:
+     ```bash
+     npm run seed
+     ```
+     It's idempotent, so it's safe to run again.
+- **Dev note:** the in-memory repository survives hot reloads. If you change `MemoryRepository` itself, restart `npm run dev`.
+
 ## Build phases
 0. Scaffold, env config, folder structure, interfaces for every module
 1. **Step engine + thorough unit tests** (flicker, skipped critical step, pause/resume timers, retries leading to needs_human, fast-check invariants)

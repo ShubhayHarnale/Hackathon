@@ -4,6 +4,7 @@ import type {
   AlertRecord,
   AlertStatus,
   EvidenceFrameRecord,
+  FlagReview,
   NewSession,
   ParticipantRecord,
   ProtocolRecord,
@@ -35,6 +36,7 @@ export class MemoryRepository implements Repository {
   private readonly events = new Map<string, Map<number, StoredEvent>>();
   private readonly frames = new Map<string, { record: EvidenceFrameRecord; jpeg: Uint8Array }>();
   private readonly alerts = new Map<string, AlertRecord>();
+  private readonly flagReviews = new Map<string, FlagReview>(); // `${sessionId}:${eventSeq}`
 
   constructor(seed: MemorySeed = {}) {
     this.now = seed.now ?? (() => Date.now());
@@ -210,7 +212,7 @@ export class MemoryRepository implements Repository {
   }
 
   async getEvidenceUrl(frame: EvidenceFrameRecord) {
-    return `/api/evidence/${frame.id}`;
+    return `/api/coordinator/evidence/${frame.id}`;
   }
 
   /** Memory-only: serves frame bytes for the evidence route. */
@@ -244,5 +246,20 @@ export class MemoryRepository implements Repository {
     const updated: AlertRecord = { ...existing, status: "reviewed", reviewedAt: this.now() };
     this.alerts.set(id, updated);
     return updated;
+  }
+
+  // --- Flag reviews --------------------------------------------------------------------
+
+  async listFlagReviews(sessionId: string) {
+    return [...this.flagReviews.values()].filter((r) => r.sessionId === sessionId);
+  }
+
+  async markFlagReviewed(sessionId: string, eventSeq: number, note: string | null = null) {
+    const key = `${sessionId}:${eventSeq}`;
+    const existing = this.flagReviews.get(key);
+    if (existing) return existing;
+    const review: FlagReview = { sessionId, eventSeq, reviewedAt: this.now(), note };
+    this.flagReviews.set(key, review);
+    return review;
   }
 }

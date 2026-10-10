@@ -62,6 +62,17 @@ export interface EvidenceFrameRecord {
 
 export type AlertStatus = "open" | "reviewed";
 
+/**
+ * A study-team review of one flagged event (critical miss, skipped step, nurse called...).
+ * Flags themselves are derived from the append-only event log; only the review is stored.
+ */
+export interface FlagReview {
+  readonly sessionId: string;
+  readonly eventSeq: number;
+  readonly reviewedAt: Millis;
+  readonly note: string | null;
+}
+
 export interface AlertRecord {
   readonly id: string;
   readonly sessionId: string;
@@ -122,4 +133,8 @@ export interface Repository {
     status?: AlertStatus;
   }): Promise<readonly AlertRecord[]>;
   markAlertReviewed(id: string): Promise<AlertRecord>;
+
+  listFlagReviews(sessionId: string): Promise<readonly FlagReview[]>;
+  /** Idempotent: reviewing an already-reviewed flag keeps the first review. */
+  markFlagReviewed(sessionId: string, eventSeq: number, note?: string | null): Promise<FlagReview>;
 }
