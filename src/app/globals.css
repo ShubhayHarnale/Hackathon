@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+/*
+ * High-contrast tokens. Text/background pairs meet WCAG AA (most meet AAA).
+ * Patient screens use these with >= 20px body text and >= 56px tap targets.
+ */
+:root {
+  --background: #ffffff;
+  --foreground: #111111;
+  --muted: #4a4a4a;
+  --surface: #f2f2f2;
+  --border: #6b6b6b;
+  --primary: #0b4fd6;
+  --primary-foreground: #ffffff;
+  --danger: #b00020;
+  --danger-foreground: #ffffff;
+  --success: #116b2f;
+  --warning-bg: #fff3c4;
+  --warning-fg: #3d2e00;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0b0b0c;
+    --foreground: #f5f5f5;
+    --muted: #c4c4c4;
+    --surface: #1c1c1f;
+    --border: #a0a0a0;
+    --primary: #8fb4ff;
+    --primary-foreground: #0b0b0c;
+    --danger: #ff8a80;
+    --danger-foreground: #0b0b0c;
+    --success: #7ee2a0;
+    --warning-bg: #3d2e00;
+    --warning-fg: #fff3c4;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-danger: var(--danger);
+  --color-danger-foreground: var(--danger-foreground);
+  --color-success: var(--success);
+  --color-warning-bg: var(--warning-bg);
+  --color-warning-fg: var(--warning-fg);
+  --font-sans: var(--font-atkinson), system-ui, sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

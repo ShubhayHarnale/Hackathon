@@ -74,4 +74,37 @@ Every provider has a mock and is selected by an env flag. **The app runs with no
 Next.js (App Router), TypeScript (strict), Tailwind, Zod, Vitest, Supabase (Postgres + Storage), Gemini API, Vercel.
 
 ## Getting started
-_Setup, env vars, demo mode and test instructions are added in Phase 0._
+Requires Node 20.9+ and npm.
+
+```bash
+npm install
+cp .env.example .env.local   # optional: every provider defaults to its mock
+npm run dev                  # http://localhost:3000
+```
+
+| Script | What it does |
+|---|---|
+| `npm run dev` | Dev server |
+| `npm test` | Unit tests (Vitest) |
+| `npm run typecheck` | Generates Next route types, then `tsc --noEmit` |
+| `npm run lint` | ESLint, including the engine purity rules |
+| `npm run build` | Production build |
+
+### Environment variables
+See [`.env.example`](.env.example). With no `.env.local`, everything runs on mocks: no Gemini key, no Supabase.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `VISION_PROVIDER` | `mock` | `mock` or `gemini` frame checks |
+| `PROTOCOL_COMPILER` | `mock` | `mock` or `gemini` protocol compilation |
+| `PERSISTENCE` | `memory` | `memory` or `supabase` |
+| `NOTIFIER` | `mock` | Escalation delivery (a real SMS provider is stubbed) |
+| `NEXT_PUBLIC_VOICE_PROVIDER` | `browser` | `browser` speech or `gemini-live` |
+| `GEMINI_API_KEY` | – | Required when any Gemini provider is selected |
+| `GEMINI_*_MODEL` | `gemini-3.8-flash` / `gemini-3.8-live` | Model IDs, overridable |
+| `SUPABASE_URL`, `SUPABASE_SECRET_KEY` | – | Server-only; required when `PERSISTENCE=supabase` |
+| `COORDINATOR_PASSCODE` | – | Hackathon gate for the dashboard |
+| `NEXT_PUBLIC_TRIAL_NURSE_PHONE` | `+1-555-0100` | The trial's 24/7 line (fictional number) |
+
+### Testing on a phone
+The camera only works over HTTPS on a phone. Use a Vercel preview deployment or a tunnel to your dev server.
