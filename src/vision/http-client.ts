@@ -4,6 +4,7 @@ import { FrameResultSchema } from "./schema";
 import type { VisionCheckRequest, VisionProvider } from "./types";
 
 export interface HttpVisionOptions {
+  readonly sessionToken?: string;
   readonly endpoint?: string;
   /** Client-side budget per frame (the server has its own, shorter one). */
   readonly timeoutMs?: number;
@@ -27,7 +28,10 @@ export function createHttpVisionProvider(options: HttpVisionOptions = {}): Visio
       try {
         res = await fetchImpl(endpoint, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            ...(options.sessionToken ? { authorization: `Bearer ${options.sessionToken}` } : {}),
+          },
           body: JSON.stringify(request),
           signal,
         });

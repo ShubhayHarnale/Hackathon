@@ -175,3 +175,45 @@ test("recorded video follows the patient pipeline and persists evidence", async 
   await expect(page.getByText("All steps confirmed.", { exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: /Open evidence frame/ }).first()).toBeVisible();
 });
+
+test("phone-sized happy demo supports pause, repeat, resume and completes with a coordinator record", async ({
+  page,
+  request,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const created = await session(request);
+  await startScript(page, created.link, "happy");
+  await page.getByRole("heading", { name: "Read the pen label aloud", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeVisible();
+  await accessible(page);
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByRole("button", { name: "Repeat", exact: true }).click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByRole("heading", { name: "Check the expiry date", exact: true }).waitFor();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "All done", exact: true })).toBeVisible({
+    timeout: 60_000,
+  });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await accessible(page);
+  await page.goto(`/coordinator/sessions/${created.sessionId}`);
+  await expect(page.getByText("All steps confirmed.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Open evidence frame/ }).first()).toBeVisible();
+});
+
+test("vision outage pauses then stops and records study-team escalation", async ({
+  page,
+  request,
+}) => {
+  const created = await session(request);
+  await startScript(page, created.link, "outage");
+  await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(
+    page.getByRole("heading").filter({ hasText: "Stop. Call your study nurse" }),
+  ).toBeVisible({ timeout: 40_000 });
+  await page.goto(`/coordinator/sessions/${created.sessionId}`);
+  await expect(page.getByText("needs human · Study team", { exact: true })).toBeVisible();
+});

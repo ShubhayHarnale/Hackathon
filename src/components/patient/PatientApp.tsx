@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { DemoBanner } from "@/components/DemoBanner";
 import { PRACTICE_STEPS } from "@/demo";
 import { currentStep } from "@/engine";
+import { createVoiceProvider } from "@/voice";
 import { publicEnv } from "@/lib/env";
 import { PatientMedia } from "@/patient/capture";
 import { LABELS, NOTES } from "@/patient/copy";
@@ -56,6 +57,7 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
     const media = new PatientMedia(scripted);
     const controller = new PatientController({
       sessionId,
+      sessionToken: token,
       steps: protocol.steps,
       practiceSteps: PRACTICE_STEPS,
       vision,
@@ -64,7 +66,10 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
       evidence: new EvidenceUploader({ send: httpSendEvidence(token) }),
     });
     media.label = () => currentStep(controller.runner.state)?.id ?? "";
-    const voice = new PatientVoice(controller, { onStatus: setVoiceStatus });
+    const voice = new PatientVoice(controller, {
+      onStatus: setVoiceStatus,
+      createProvider: () => createVoiceProvider(undefined, { sessionToken: token }),
+    });
     return {
       controller,
       media,

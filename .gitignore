@@ -23,6 +23,7 @@ coverage/
 
 # vercel
 .vercel
+.netlify/
 
 # supabase local
 supabase/.temp/

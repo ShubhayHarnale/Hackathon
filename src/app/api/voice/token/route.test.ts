@@ -66,4 +66,11 @@ describe("POST /api/voice/token", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
     expect((await post({ "x-forwarded-for": "10.1.1.1" })).status).toBe(502);
   });
+
+  it("does not issue a Live token to an anonymous hosted visitor", async () => {
+    vi.stubEnv("NEXT_PUBLIC_VOICE_PROVIDER", "gemini-live");
+    vi.stubEnv("COORDINATOR_PASSCODE", "readiness-passcode");
+    expect((await post()).status).toBe(401);
+    expect(create).not.toHaveBeenCalled();
+  });
 });

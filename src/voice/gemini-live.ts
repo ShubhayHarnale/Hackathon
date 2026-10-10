@@ -25,6 +25,7 @@ import type { Utterance, VoiceErrorKind, VoiceListenHandlers, VoiceProvider } fr
  */
 
 export interface GeminiLiveVoiceOptions extends BrowserVoiceOptions {
+  readonly sessionToken?: string;
   /** Token endpoint. Default "/api/voice/token". */
   readonly tokenUrl?: string;
   /** Logs Live transcripts and dropped model output. Default: console.info. */
@@ -100,7 +101,12 @@ export function createGeminiLiveVoiceProvider(options: GeminiLiveVoiceOptions = 
   }
 
   async function fetchToken(): Promise<TokenResponse> {
-    const res = await fetch(tokenUrl, { method: "POST" });
+    const res = await fetch(tokenUrl, {
+      method: "POST",
+      ...(options.sessionToken
+        ? { headers: { authorization: `Bearer ${options.sessionToken}` } }
+        : {}),
+    });
     if (!res.ok) {
       const kind: VoiceErrorKind =
         res.status === 404 || res.status === 503 ? "not_supported" : "network";

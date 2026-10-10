@@ -9,6 +9,7 @@ export default defineConfig({
     baseURL: "http://127.0.0.1:3107",
     ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}),
     trace: "retain-on-failure",
+    video: process.env.PLAYWRIGHT_RECORD_DEMO === "1" ? "on" : "off",
   },
   webServer: {
     command: "npm run start -- --port 3107",

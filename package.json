@@ -14,7 +14,9 @@
     "format:check": "prettier --check .",
     "vision:eval": "tsx --conditions=react-server scripts/vision-eval.ts",
     "seed": "tsx --conditions=react-server scripts/seed.ts",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:deploy": "node scripts/check-deploy.mjs",
+    "supabase:smoke": "tsx --conditions=react-server scripts/supabase-smoke.ts"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",

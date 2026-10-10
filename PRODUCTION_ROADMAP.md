@@ -7,8 +7,9 @@ It is not validated for clinical use, emergency monitoring, or treatment decisio
 
 - Validate hosted Supabase end to end, including PostgREST, Storage, signed URLs, migration
   rollout, and persistence across deployments. Local Postgres checks cover SQL behavior only.
-- Authenticate vision requests and Gemini Live token issuance against sessions; use durable
-  abuse/rate controls. The existing vision session ID and in-memory limiter are not authorization.
+- Vision requests and Gemini Live token issuance now require a patient session token or
+  coordinator access when the coordinator passcode is set. Add durable abuse/rate controls;
+  public demo-link creation and per-instance limits are not a quota-management system.
 - Add observability and retention limits for demo sessions, evidence, and provider failures.
 - Record and label prop videos, run the vision evaluation, and publish actual measurements
   separately from deterministic mock tests. Test the exact target phone/browser setup.

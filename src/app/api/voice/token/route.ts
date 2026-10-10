@@ -1,6 +1,7 @@
 import { getGeminiClient } from "@/gemini/client";
 import { geminiModels } from "@/gemini/models";
 import { publicEnv } from "@/lib/env";
+import { providerAccess } from "@/lib/provider-access";
 import { TokenBucketLimiter } from "@/vision/rate-limit";
 import { LIVE_API_VERSION, liveConnectConfig } from "@/voice/gemini-live-config";
 
@@ -22,18 +23,19 @@ function tokenLimiter(): TokenBucketLimiter {
  * GEMINI_LIVE_MODEL and the app's Live config (command functions only). The API key
  * never leaves the server.
  *
- * Only enabled when NEXT_PUBLIC_VOICE_PROVIDER=gemini-live. Not yet tied to a patient
- * session (Phase 4 owns session auth): it's rate-limited per client address.
+ * Only enabled when NEXT_PUBLIC_VOICE_PROVIDER=gemini-live. Requires a patient link
+ * token or coordinator access; rate-limited by session/coordinator address.
  */
 export async function POST(request: Request) {
   if (publicEnv.NEXT_PUBLIC_VOICE_PROVIDER !== "gemini-live") {
     return Response.json({ error: "not_enabled" }, { status: 404 });
   }
+  const access = await providerAccess(request);
+  if (!access.ok) return Response.json({ error: "unauthorized" }, { status: 401 });
   const client = getGeminiClient();
   if (!client) return Response.json({ error: "not_configured" }, { status: 503 });
 
-  const caller = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  if (!tokenLimiter().take(caller)) {
+  if (!tokenLimiter().take(access.limiterKey)) {
     return Response.json({ error: "rate_limited" }, { status: 429 });
   }
 

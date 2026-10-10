@@ -68,6 +68,9 @@ alone. Rehearse the exact recording in the target browser before presenting.
 
 ## Supabase and deployment
 
+The selected host is Netlify. Follow [NETLIFY_SETUP.md](NETLIFY_SETUP.md) for account,
+migration, environment-variable and deployment steps.
+
 1. Apply **both** files in `supabase/migrations/`, in filename order. The phase 7 migration
    adds alert delivery receipts and the atomic `append_session_events` RPC.
 2. Set `PERSISTENCE=supabase`, `SUPABASE_URL`, and `SUPABASE_SECRET_KEY`, then `npm run seed`.

@@ -1,6 +1,6 @@
 import { publicEnv } from "@/lib/env";
 import { createBrowserVoiceProvider } from "./browser";
-import { createGeminiLiveVoiceProvider } from "./gemini-live";
+import { createGeminiLiveVoiceProvider, type GeminiLiveVoiceOptions } from "./gemini-live";
 import type { VoiceProvider } from "./types";
 
 /**
@@ -10,6 +10,9 @@ import type { VoiceProvider } from "./types";
  */
 export function createVoiceProvider(
   kind: "browser" | "gemini-live" = publicEnv.NEXT_PUBLIC_VOICE_PROVIDER,
+  options: GeminiLiveVoiceOptions = {},
 ): VoiceProvider {
-  return kind === "gemini-live" ? createGeminiLiveVoiceProvider() : createBrowserVoiceProvider();
+  return kind === "gemini-live"
+    ? createGeminiLiveVoiceProvider(options)
+    : createBrowserVoiceProvider(options);
 }

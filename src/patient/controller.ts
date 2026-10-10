@@ -30,6 +30,7 @@ export type VisionConfig =
 
 export interface PatientControllerOptions {
   readonly sessionId: string;
+  readonly sessionToken?: string;
   readonly steps: readonly Step[];
   readonly practiceSteps: readonly Step[];
   readonly vision: VisionConfig;
@@ -100,7 +101,7 @@ export class PatientController {
       opts.provider ??
       (opts.vision.kind === "scripted"
         ? new ScriptedVisionProvider(opts.vision.scenario, [...opts.practiceSteps, ...opts.steps])
-        : createHttpVisionProvider());
+        : createHttpVisionProvider({ sessionToken: opts.sessionToken }));
 
     this.loop = new VisionLoop({
       provider,

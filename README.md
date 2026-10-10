@@ -131,6 +131,8 @@ Turns pasted procedure text into reviewed, versioned steps. **The compiler draft
 - **What the model is asked:** the current step plus the next 3 steps, so skips are visible. It only classifies frames: it picks an id and an issue code from a fixed list, and never writes text for the patient.
 - **API route** (`POST /api/vision/check`):
   - Validates requests with Zod.
+  - With a configured coordinator passcode, requires a patient session token or coordinator
+    cookie. Patient step text comes from the stored protocol, not the request's supplied text.
   - Rate-limits each session with a token bucket (burst of 4, refilling 2 per second; in-memory, per server instance).
   - Errors come back as typed kinds (`timeout` 504, `rate_limited` 429, `provider` 502). The client turns them into `frame_error`, so the engine pauses and then routes to a human, and never guesses.
 - **Client:** the browser times out a request after 6 s. Only one check is in flight at a time, so slow responses are skipped rather than queued. The last 8 frames are kept so the frame that confirmed a step can be uploaded as evidence.
@@ -151,6 +153,10 @@ npm run vision:eval -- --protocol mock-autoinjector --frames eval/take1
 ```
 
 It reports accuracy, current-step recall, the **false "later step" rate** (the one that causes wrong stops) and latency at p50 and p95.
+
+The evaluator now follows engine state rather than using correct labels to choose expected
+steps. Annotate explicit Done taps for verbal requirements. See [READINESS.md](READINESS.md)
+for complete recordings, annotations, JSON reports and the limits of offline replay.
 
 ## Patient app (`src/patient/`, Phase 4)
 
@@ -207,7 +213,7 @@ microphone → VoiceProvider (transcript) → parseCommand → VoiceCoach → en
   - It ignores what it hears while speaking and for 600 ms after. On iOS it stops the recognizer while speaking, because record mode silences speech there.
   - Firefox is speak-only (the buttons still work). Errors map to `not_supported`, `permission_denied`, `network` or `unknown`.
 - **Gemini Live** (stretch, `NEXT_PUBLIC_VOICE_PROVIDER=gemini-live`):
-  - `POST /api/voice/token` mints a **single-use, 30-minute** ephemeral token, locked to `GEMINI_LIVE_MODEL` and a config with only the five command functions. It's rate-limited per client.
+  - `POST /api/voice/token` mints a **single-use, 30-minute** ephemeral token, locked to `GEMINI_LIVE_MODEL` and a config with only the five command functions. With a configured passcode, it requires patient/coordinator access and is rate-limited per session or coordinator address.
   - The browser streams 16 kHz PCM16 from an AudioWorklet and acts on the model's function calls. `continue` and `done` count only when the app's own parser agrees with the input transcript.
   - **Live's audio output is discarded.** Speech still comes from `speechSynthesis`, reading the coach's text verbatim, because a speech model can paraphrase.
   - **Tested against the real API** (`gemini-3.8-live`, ephemeral tokens on `v1beta`; the SDK warns about `v1alpha`, but `v1beta` works). Each test streamed synthesized speech, and the results were:
@@ -295,13 +301,13 @@ microphone → VoiceProvider (transcript) → parseCommand → VoiceCoach → en
 5. Voice (browser speech first; Gemini Live is a stretch goal)
 6. Supabase persistence + coordinator dashboard + evidence frames
 7. Escalation mock, demo/replay mode, accessibility pass, docs
-8. Showcase landing page at `/`: pitch, demo video (hosted on YouTube or Vercel Blob, not in git), how it works, safety principles, "try it" links into the live demo, roadmap, team. Built last so the video and screenshots show the finished product.
+8. Showcase landing page at `/`: pitch, demo video (hosted outside Git), how it works, safety principles, "try it" links into the live demo, roadmap, team. Built last so the video and screenshots show the finished product.
 
 **24h split (2 devs).**
 
 - **Dev A:** engine → vision → patient UI → voice.
 - **Dev B:** compiler → Supabase → dashboard → escalation/replay → docs.
-- **Checkpoint at hour 12:** the whole flow runs end-to-end on mocks and is deployed to Vercel.
+- **Checkpoint at hour 12:** the whole flow runs end-to-end on mocks and is deployed over HTTPS.
 
 ## Demo mode
 
@@ -312,9 +318,11 @@ microphone → VoiceProvider (transcript) → parseCommand → VoiceCoach → en
 
 ## Stack
 
-Next.js (App Router), TypeScript (strict), Tailwind, Zod, Vitest, Supabase (Postgres + Storage), Gemini API, Vercel.
+Next.js (App Router), TypeScript (strict), Tailwind, Zod, Vitest, Supabase (Postgres + Storage), Gemini API, Netlify.
 
 ## Getting started
+
+For the selected hosting setup, follow [Supabase + Netlify setup](NETLIFY_SETUP.md).
 
 Requires Node 20.9+ and npm.
 
@@ -352,4 +360,4 @@ See [`.env.example`](.env.example). With no `.env.local`, everything runs on moc
 
 ### Testing on a phone
 
-The camera only works over HTTPS on a phone. Use a Vercel preview deployment or a tunnel to your dev server.
+The camera only works over HTTPS on a phone. Use the Netlify deployment or an HTTPS tunnel to your dev server.
