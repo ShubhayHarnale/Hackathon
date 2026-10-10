@@ -38,3 +38,6 @@ npm-debug.log*
 
 # vision eval frames (recorded people; never commit)
 eval/
+
+# Claude Code session worktrees
+.claude/worktrees/
