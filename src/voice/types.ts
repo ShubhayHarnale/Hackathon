@@ -30,8 +30,14 @@ export interface VoiceListenHandlers {
 export interface VoiceProvider {
   readonly name: string;
   readonly capabilities: { readonly speak: boolean; readonly listen: boolean };
+  /** Resolves when the utterance has finished playing or was cancelled. Never rejects. */
   speak(utterance: Utterance): Promise<void>;
   cancel(): void;
+  /**
+   * Call from a user gesture (a tap) before the first `speak`. iOS Safari and some
+   * Chrome builds only allow speech that starts from a gesture.
+   */
+  prime?(): void;
   startListening(handlers: VoiceListenHandlers): void;
   stopListening(): void;
   dispose(): void;
