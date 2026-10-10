@@ -88,7 +88,10 @@ export interface Repository {
   getParticipant(id: string): Promise<ParticipantRecord | null>;
 
   listProtocols(): Promise<readonly ProtocolRecord[]>;
+  /** A specific version, or the latest version (draft or published) when omitted. */
   getProtocol(id: string, version?: number): Promise<ProtocolRecord | null>;
+  /** What new sessions run: the latest published version. */
+  getLatestPublishedProtocol(id: string): Promise<ProtocolRecord | null>;
   saveProtocolDraft(protocol: Protocol, sourceText: string | null): Promise<ProtocolRecord>;
   publishProtocol(id: string, version: number): Promise<ProtocolRecord>;
 

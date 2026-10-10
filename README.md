@@ -87,6 +87,29 @@ A pure function `transition(state, input, config) → { state, events }`. It per
   - only `resume` leaves a pause
   - terminal states never change
 
+## Protocol compiler (`src/protocol/`, Phase 2)
+Turns pasted procedure text into reviewed, versioned steps. **The compiler drafts; the study team decides.** Nothing is published automatically.
+
+1. **Compile** (`POST /api/protocols/compile`):
+   - `PROTOCOL_COMPILER=gemini` uses Gemini structured output: the Interactions API, `store: false`, and a JSON schema generated from Zod. The system prompt forbids adding dosing advice or reordering actions.
+   - `mock` (the default) splits numbered lines and understands `(critical)` and "N seconds" markers.
+2. **Repair:**
+   - Deterministic first: fix ids, renumbering, casing, whitespace and timer ranges. It never invents missing text.
+   - Then exactly **one** repair round-trip that sends the Zod errors back to Gemini. If that also fails, the coordinator sees the error and the raw output.
+3. **Lint** (non-blocking warnings):
+   - dose or amount language
+   - more than one action in a step
+   - over-long on-screen text
+   - no critical step
+4. **Review** at `/coordinator/protocols/new`: edit, reorder, add or remove steps, and set critical, how a step is confirmed, and timers. The page re-validates live.
+5. **Save and publish:** saving creates a draft. Publishing is an explicit button. Published versions are immutable: editing one creates a new version, and new sessions use the latest published version.
+
+**Seeded demo protocols** live in `src/demo/protocols/*.json` (mock autoinjector, nasal spray, inhaler) along with synthetic participants. They are validated at load time.
+
+**Coordinator access:** if `COORDINATOR_PASSCODE` is set, `/coordinator` and its APIs require a sign-in (an httpOnly cookie holding a hash) via `src/proxy.ts`. If it's unset, the dashboard is open for local demos.
+
+**Persistence:** `PERSISTENCE=memory` (the default) is an in-memory repository with the same rules Supabase will enforce: append-only, idempotent step events and immutable published protocols. Session links store only a SHA-256 hash of the token.
+
 ## Build phases
 0. Scaffold, env config, folder structure, interfaces for every module
 1. **Step engine + thorough unit tests** (flicker, skipped critical step, pause/resume timers, retries leading to needs_human, fast-check invariants)

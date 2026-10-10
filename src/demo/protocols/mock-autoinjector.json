@@ -1,0 +1,89 @@
+{
+  "id": "mock-autoinjector",
+  "title": "Mock autoinjector (demo)",
+  "isDemo": true,
+  "steps": [
+    {
+      "id": "wash-hands",
+      "order": 1,
+      "instruction": "Wash your hands",
+      "spokenPrompt": "First, wash your hands with soap and water, where the camera can see them.",
+      "successCriteria": "Both hands are being rubbed together under running water or with soap lather.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "read-label",
+      "order": 2,
+      "instruction": "Read the pen label aloud",
+      "spokenPrompt": "Pick up the pen and read the name on the label out loud.",
+      "successCriteria": "The pen is held up near the face with its label toward the person.",
+      "critical": false,
+      "verification": "verbal"
+    },
+    {
+      "id": "check-expiry",
+      "order": 3,
+      "instruction": "Check the expiry date",
+      "spokenPrompt": "Hold the pen up to the camera and check the date on the label. Say \"checked\" when you have looked.",
+      "successCriteria": "The pen is held up close to the camera with the label facing the camera.",
+      "critical": false,
+      "verification": "visual+verbal"
+    },
+    {
+      "id": "clean-site",
+      "order": 4,
+      "instruction": "Clean your thigh with the alcohol swab",
+      "spokenPrompt": "Wipe the front of your thigh with the alcohol swab. Let it dry.",
+      "successCriteria": "A small white swab or wipe is being rubbed on the front of the thigh.",
+      "critical": true,
+      "verification": "visual"
+    },
+    {
+      "id": "remove-cap",
+      "order": 5,
+      "instruction": "Pull the cap off the pen",
+      "spokenPrompt": "Pull the cap straight off the pen. Don't touch the tip.",
+      "successCriteria": "One hand holds the pen body while the other pulls the cap off the end.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "place-pen",
+      "order": 6,
+      "instruction": "Place the pen on your thigh at a right angle",
+      "spokenPrompt": "Place the tip of the pen flat against your thigh, straight up and down.",
+      "successCriteria": "The pen tip touches the front of the thigh with the pen held upright, about 90 degrees to the skin.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "press-hold",
+      "order": 7,
+      "instruction": "Press and hold for 10 seconds",
+      "spokenPrompt": "Press the pen down firmly and hold it there. I'll count the time for you.",
+      "successCriteria": "The pen is pressed upright against the thigh and held still.",
+      "critical": true,
+      "verification": "visual",
+      "timerSeconds": 10
+    },
+    {
+      "id": "remove-pen",
+      "order": 8,
+      "instruction": "Lift the pen away",
+      "spokenPrompt": "Now lift the pen straight up and away from your thigh.",
+      "successCriteria": "The pen is lifted away from the thigh and no longer touching the skin.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "sharps",
+      "order": 9,
+      "instruction": "Put the pen in the sharps container",
+      "spokenPrompt": "Put the used pen in your sharps container.",
+      "successCriteria": "The pen is being placed into a box or container.",
+      "critical": false,
+      "verification": "visual"
+    }
+  ]
+}

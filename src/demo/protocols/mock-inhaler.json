@@ -1,0 +1,62 @@
+{
+  "id": "mock-inhaler",
+  "title": "Mock inhaler (demo)",
+  "isDemo": true,
+  "steps": [
+    {
+      "id": "remove-cap",
+      "order": 1,
+      "instruction": "Take the cap off the inhaler",
+      "spokenPrompt": "Take the cap off the mouthpiece of your inhaler.",
+      "successCriteria": "The cap is pulled off the inhaler mouthpiece.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "shake",
+      "order": 2,
+      "instruction": "Shake the inhaler",
+      "spokenPrompt": "Shake the inhaler well, about five times.",
+      "successCriteria": "The inhaler is held in the hand and shaken.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "breathe-out",
+      "order": 3,
+      "instruction": "Breathe out fully, away from the inhaler",
+      "spokenPrompt": "Turn your head away and breathe all the way out.",
+      "successCriteria": "The inhaler is held away from the mouth while the person breathes out.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "inhale-press",
+      "order": 4,
+      "instruction": "Press once while breathing in slowly",
+      "spokenPrompt": "Put the mouthpiece in your mouth, close your lips, and press once while you breathe in slowly.",
+      "successCriteria": "The inhaler mouthpiece is between the lips with a finger pressing the canister.",
+      "critical": true,
+      "verification": "visual"
+    },
+    {
+      "id": "hold-breath",
+      "order": 5,
+      "instruction": "Hold your breath",
+      "spokenPrompt": "Take the inhaler out and hold your breath. I'll count for you.",
+      "successCriteria": "The inhaler is away from the mouth and the lips are closed.",
+      "critical": true,
+      "verification": "visual",
+      "timerSeconds": 10
+    },
+    {
+      "id": "replace-cap",
+      "order": 6,
+      "instruction": "Put the cap back on",
+      "spokenPrompt": "Breathe out slowly, then put the cap back on.",
+      "successCriteria": "The cap is pressed back onto the mouthpiece.",
+      "critical": false,
+      "verification": "visual"
+    }
+  ]
+}

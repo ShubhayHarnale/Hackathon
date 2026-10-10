@@ -1,0 +1,20 @@
+[
+  {
+    "id": "p-001",
+    "displayName": "Ruth (demo)",
+    "trialNumber": "WIT-DEMO-001",
+    "trustedContact": { "name": "Sam (demo)", "phone": "+1-555-0142", "consented": true }
+  },
+  {
+    "id": "p-002",
+    "displayName": "Walter (demo)",
+    "trialNumber": "WIT-DEMO-002",
+    "trustedContact": { "name": "Ana (demo)", "phone": "+1-555-0177", "consented": false }
+  },
+  {
+    "id": "p-003",
+    "displayName": "June (demo)",
+    "trialNumber": "WIT-DEMO-003",
+    "trustedContact": null
+  }
+]

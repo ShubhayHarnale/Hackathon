@@ -1,0 +1,70 @@
+{
+  "id": "mock-nasal-spray",
+  "title": "Mock nasal spray (demo)",
+  "isDemo": true,
+  "steps": [
+    {
+      "id": "blow-nose",
+      "order": 1,
+      "instruction": "Gently blow your nose",
+      "spokenPrompt": "Gently blow your nose into a tissue.",
+      "successCriteria": "A tissue is held to the nose.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "shake-bottle",
+      "order": 2,
+      "instruction": "Shake the spray bottle",
+      "spokenPrompt": "Hold the spray bottle upright and shake it a few times.",
+      "successCriteria": "A small bottle is held upright and moving up and down in the hand.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "remove-cap",
+      "order": 3,
+      "instruction": "Take the cap off",
+      "spokenPrompt": "Take the cap off the nozzle.",
+      "successCriteria": "The cap is pulled off the top of the bottle.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "tilt-head",
+      "order": 4,
+      "instruction": "Tilt your head forward slightly",
+      "spokenPrompt": "Tilt your head forward a little, looking down at your toes.",
+      "successCriteria": "The head is tilted slightly forward.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "spray",
+      "order": 5,
+      "instruction": "Spray once into one nostril",
+      "spokenPrompt": "Put the nozzle just inside one nostril and press once while breathing in gently.",
+      "successCriteria": "The bottle nozzle is placed at one nostril with a finger pressing the top.",
+      "critical": true,
+      "verification": "visual"
+    },
+    {
+      "id": "confirm-spray",
+      "order": 6,
+      "instruction": "Say \"done\" after the spray",
+      "spokenPrompt": "Say \"done\" once you've sprayed.",
+      "successCriteria": "No visual check; the person confirms out loud.",
+      "critical": false,
+      "verification": "verbal"
+    },
+    {
+      "id": "replace-cap",
+      "order": 7,
+      "instruction": "Put the cap back on",
+      "spokenPrompt": "Wipe the nozzle and put the cap back on.",
+      "successCriteria": "The cap is pressed back onto the top of the bottle.",
+      "critical": false,
+      "verification": "visual"
+    }
+  ]
+}
