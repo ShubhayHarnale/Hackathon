@@ -110,6 +110,35 @@ Turns pasted procedure text into reviewed, versioned steps. **The compiler draft
 
 **Persistence:** `PERSISTENCE=memory` (the default) is an in-memory repository with the same rules Supabase will enforce: append-only, idempotent step events and immutable published protocols. Session links store only a SHA-256 hash of the token.
 
+## Vision (`src/vision/`, Phase 3)
+```
+<video> (camera or replayed file) → canvas → JPEG ≤640px q0.7 → VisionLoop (~1 fps, single-flight, numbered frames)
+  → VisionProvider → FrameResult { observedStepId | null, confidence, issue?, handsVisible? } → engine
+```
+- **Providers:**
+  - `gemini` (server-only): Interactions API, `store: false`, low image resolution, `thinking_level: "minimal"`, temperature 0, a 4 s timeout, and structured output whose step ids are restricted to the candidates or `"none"`.
+  - `mock`: always sees the current step.
+  - **Scripted scenarios** (browser-side, no camera or key needed): `happy`, `flicker`, `poor-camera`, `skip-critical`, `early-release` and `outage`.
+- **What the model is asked:** the current step plus the next 3 steps, so skips are visible. It only classifies frames: it picks an id and an issue code from a fixed list, and never writes text for the patient.
+- **API route** (`POST /api/vision/check`):
+  - Validates requests with Zod.
+  - Rate-limits each session with a token bucket (burst of 4, refilling 2 per second; in-memory, per server instance).
+  - Errors come back as typed kinds (`timeout` 504, `rate_limited` 429, `provider` 502). The client turns them into `frame_error`, so the engine pauses and then routes to a human, and never guesses.
+- **Client:** the browser times out a request after 6 s. Only one check is in flight at a time, so slow responses are skipped rather than queued. The last 8 frames are kept so the frame that confirmed a step can be uploaded as evidence (Phase 6).
+- **Replay mode** uses exactly the same code path with a video file as the source.
+
+**Vision lab** (`/coordinator/vision-lab`): runs the whole pipeline live. You pick a protocol and a source (a scripted scenario, the camera, or a video file) and see the engine state, every frame's verdict and latency, and the event log. Use it to rehearse each safety path and to tune the prompt.
+
+**Vision eval** (measures Gemini on recorded takes):
+```bash
+ffmpeg -i take1.mp4 -vf fps=1,scale=640:-1 eval/take1/frame_%04d.jpg
+```
+Label the frames in `eval/take1/labels.json`, e.g. `{ "frame_0001.jpg": "wash-hands", "frame_0002.jpg": "none" }`, then run:
+```bash
+npm run vision:eval -- --protocol mock-autoinjector --frames eval/take1
+```
+It reports accuracy, current-step recall, the **false "later step" rate** (the one that causes wrong stops) and latency at p50 and p95.
+
 ## Build phases
 0. Scaffold, env config, folder structure, interfaces for every module
 1. **Step engine + thorough unit tests** (flicker, skipped critical step, pause/resume timers, retries leading to needs_human, fast-check invariants)

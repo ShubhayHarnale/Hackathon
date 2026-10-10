@@ -11,7 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "vision:eval": "tsx --conditions=react-server scripts/vision-eval.ts"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",

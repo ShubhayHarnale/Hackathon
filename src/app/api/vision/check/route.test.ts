@@ -1,0 +1,36 @@
+import { describe, expect, it } from "vitest";
+import { POST } from "./route";
+
+const body = (sessionId: string) => ({
+  sessionId,
+  seq: 1,
+  capturedAt: 0,
+  image: { mimeType: "image/jpeg", base64: "AAAA" },
+  currentStep: { id: "wash-hands", instruction: "Wash", successCriteria: "Hands washing" },
+  upcomingSteps: [],
+});
+
+const post = (payload: unknown) =>
+  POST(
+    new Request("http://test/api/vision/check", { method: "POST", body: JSON.stringify(payload) }),
+  );
+
+describe("POST /api/vision/check (mock provider)", () => {
+  it("returns a frame result", async () => {
+    const res = await post(body("route-ok"));
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ observedStepId: "wash-hands" });
+  });
+
+  it("rejects malformed requests", async () => {
+    const res = await post({ sessionId: "x" });
+    expect(res.status).toBe(400);
+  });
+
+  it("rate-limits a session that sends too fast", async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 8; i++) statuses.push((await post(body("route-burst"))).status);
+    expect(statuses).toContain(429);
+    expect(statuses[0]).toBe(200);
+  });
+});

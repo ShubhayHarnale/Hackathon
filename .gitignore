@@ -35,3 +35,6 @@ supabase/.branches/
 npm-debug.log*
 .idea/
 .vscode/
+
+# vision eval frames (recorded people; never commit)
+eval/
