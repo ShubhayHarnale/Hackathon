@@ -59,7 +59,17 @@ const eslintConfig = defineConfig([
       ],
     },
   },
-  globalIgnores([".next/**", "out/**", "build/**", "coverage/**", "next-env.d.ts", ".claude/**"]),
+  globalIgnores([
+    "test-results/**",
+    "playwright-report/**",
+    ".playwright-mcp/**",
+    ".next/**",
+    "out/**",
+    "build/**",
+    "coverage/**",
+    "next-env.d.ts",
+    ".claude/**",
+  ]),
 ]);
 
 export default eslintConfig;

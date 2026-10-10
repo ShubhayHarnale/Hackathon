@@ -1,6 +1,7 @@
 import "server-only";
 import { getRepository } from "@/persistence/server";
 import type {
+  AlertRecord,
   ParticipantRecord,
   ProtocolRecord,
   SessionRecord,
@@ -13,6 +14,7 @@ export interface SessionSummary {
   readonly participant: ParticipantRecord | null;
   readonly protocol: ProtocolRecord | null;
   readonly timeline: Timeline | null;
+  readonly alerts: readonly AlertRecord[];
 }
 
 export interface SessionDetail extends SessionSummary {
@@ -23,12 +25,13 @@ export interface SessionDetail extends SessionSummary {
 
 async function summarise(session: SessionRecord): Promise<SessionDetail> {
   const repo = getRepository();
-  const [participant, protocol, events, frames, reviews] = await Promise.all([
+  const [participant, protocol, events, frames, reviews, alerts] = await Promise.all([
     repo.getParticipant(session.participantId),
     repo.getProtocol(session.protocolId, session.protocolVersion),
     repo.listEvents(session.id),
     repo.listEvidenceFrames(session.id),
     repo.listFlagReviews(session.id),
+    repo.listAlerts({ sessionId: session.id }),
   ]);
   const timeline = protocol
     ? buildTimeline({ protocol: protocol.protocol, events, frames, reviews })
@@ -37,7 +40,7 @@ async function summarise(session: SessionRecord): Promise<SessionDetail> {
   await Promise.all(
     frames.map(async (f) => evidenceUrls.set(f.id, await repo.getEvidenceUrl(f).catch(() => ""))),
   );
-  return { session, participant, protocol, timeline, events, evidenceUrls };
+  return { session, participant, protocol, timeline, events, evidenceUrls, alerts };
 }
 
 export async function loadSessionList(): Promise<SessionSummary[]> {

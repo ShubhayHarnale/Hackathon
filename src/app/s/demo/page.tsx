@@ -7,6 +7,7 @@ import { getRepository } from "@/persistence/server";
 
 const DEMO_PARTICIPANT = "p-001";
 const DEMO_PROTOCOL = "mock-autoinjector";
+const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
 /**
  * One-tap demo: a fresh session for the demo participant and the mock autoinjector on
@@ -29,10 +30,20 @@ async function DemoSession({ query }: { query: Record<string, string | string[] 
   await connection();
   const vision = visionFromQuery(query, "mock");
   const repo = getRepository();
+  const chosenProtocol = first(query.protocol);
+  const protocolId = ["mock-autoinjector", "mock-nasal-spray", "mock-inhaler"].includes(
+    chosenProtocol ?? "",
+  )
+    ? chosenProtocol!
+    : DEMO_PROTOCOL;
+  const chosenParticipant = first(query.participant);
+  const participantId = ["p-001", "p-002", "p-003"].includes(chosenParticipant ?? "")
+    ? chosenParticipant!
+    : DEMO_PARTICIPANT;
   const { session, token } = await repo.createSession({
-    participantId: DEMO_PARTICIPANT,
-    protocolId: DEMO_PROTOCOL,
-    mode: vision.kind === "server" ? "live" : "mock",
+    participantId,
+    protocolId,
+    mode: vision.kind === "server" ? "live" : vision.kind === "replay" ? "replay" : "mock",
   });
   const protocol = await repo.getProtocol(session.protocolId, session.protocolVersion);
   if (!protocol) throw new Error(`demo protocol ${DEMO_PROTOCOL} is missing`);

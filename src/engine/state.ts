@@ -33,6 +33,7 @@ export interface StepProgress {
   waitOk: boolean;
   methods: ConfirmMethod[];
   lastMatchSeq: number | null;
+  lastMatchAt: Millis | null;
   activatedAt: Millis | null;
   confirmedAt: Millis | null;
   flags: ReviewFlag[];
@@ -110,6 +111,7 @@ export function newProgress(stepId: StepId): StepProgress {
     waitOk: false,
     methods: [],
     lastMatchSeq: null,
+    lastMatchAt: null,
     activatedAt: null,
     confirmedAt: null,
     flags: [],

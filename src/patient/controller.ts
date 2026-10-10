@@ -24,7 +24,9 @@ import type { EvidenceUploader } from "./evidence";
 import type { EventOutbox } from "./outbox";
 
 export type VisionConfig =
-  { readonly kind: "scripted"; readonly scenario: ScenarioName } | { readonly kind: "server" };
+  | { readonly kind: "scripted"; readonly scenario: ScenarioName }
+  | { readonly kind: "server" }
+  | { readonly kind: "replay" };
 
 export interface PatientControllerOptions {
   readonly sessionId: string;
@@ -85,7 +87,13 @@ export class PatientController {
   constructor(private readonly opts: PatientControllerOptions) {
     this.now = opts.now ?? (() => Date.now());
     this.stepsById = new Map([...opts.practiceSteps, ...opts.steps].map((s) => [s.id, s]));
-    this.runner = new EngineRunner({ steps: opts.steps, practiceSteps: opts.practiceSteps });
+    this.runner = new EngineRunner({
+      steps: opts.steps,
+      practiceSteps: opts.practiceSteps,
+      ...(opts.vision.kind === "scripted" && opts.vision.scenario === "no-response"
+        ? { config: { maxStepSeconds: 15, maxUnmatchedFrames: 1_000 } }
+        : {}),
+    });
     this.snapshot = { engine: this.runner.state, lastFrame: null, correction: null };
 
     const provider =

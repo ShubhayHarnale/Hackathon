@@ -19,7 +19,7 @@ export function NewSessionForm({
   const router = useRouter();
   const [participantId, setParticipantId] = useState(participants[0]?.id ?? "");
   const [protocolId, setProtocolId] = useState(protocols[0]?.id ?? "");
-  const [mode, setMode] = useState<"live" | "mock">("mock");
+  const [mode, setMode] = useState<"live" | "mock" | "replay">("mock");
   const [link, setLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -86,11 +86,20 @@ export function NewSessionForm({
           Vision
           <select
             value={mode}
-            onChange={(e) => setMode(e.target.value === "live" ? "live" : "mock")}
+            onChange={(e) =>
+              setMode(
+                e.target.value === "live"
+                  ? "live"
+                  : e.target.value === "replay"
+                    ? "replay"
+                    : "mock",
+              )
+            }
             className={select}
           >
             <option value="mock">Demo (scripted, no camera)</option>
             <option value="live">Live camera</option>
+            <option value="replay">Recorded video replay</option>
           </select>
         </label>
         <button

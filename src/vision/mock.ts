@@ -21,13 +21,14 @@ export const SCENARIOS = {
   "poor-camera": "Dark, unclear frames at the start of each step (shows corrections)",
   "skip-critical": "Skips the first critical step (stops with a critical miss)",
   "early-release": "Lifts the pen early during the hold (stops with a critical miss)",
+  "no-response": "No step confirmation: stops after 15 seconds and records a no-response alert",
   outage: "The vision service stops responding (pause, then route to a human)",
 } as const;
 
 export type ScenarioName = keyof typeof SCENARIOS;
 
 export function isScenarioName(value: string): value is ScenarioName {
-  return value in SCENARIOS;
+  return Object.hasOwn(SCENARIOS, value);
 }
 
 const FLICKER: readonly ("current" | "none" | "next")[] = [
@@ -72,6 +73,8 @@ export class ScriptedVisionProvider implements VisionProvider {
     });
 
     switch (this.scenario) {
+      case "no-response":
+        return see(current.startsWith("practice-") ? current : null);
       case "happy":
         return see(current);
       case "flicker": {

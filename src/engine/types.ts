@@ -186,6 +186,8 @@ export interface EngineConfig {
   readonly maxStepSeconds: number;
   /** Consecutive non-matching frames that break a hold. */
   readonly holdBreakFrames: number;
+  /** Maximum gap between matching hold observations before the hold is interrupted. */
+  readonly maxHoldFrameGapMs: number;
   /** Consecutive vision errors before a system pause. */
   readonly maxConsecutiveVisionErrors: number;
   /** Vision outage length before routing to a human. */

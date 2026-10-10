@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { ReviewAlertButton } from "@/components/coordinator/ReviewAlertButton";
 import { AutoRefresh } from "@/components/coordinator/AutoRefresh";
 import { ReviewFlagButton } from "@/components/coordinator/ReviewFlagButton";
 import { SessionStatusBadge } from "@/components/coordinator/SessionStatusBadge";
@@ -91,7 +92,7 @@ async function SessionDetailView({ id }: { id: string }) {
   await connection();
   const detail = await loadSessionDetail(id);
   if (!detail) notFound();
-  const { session, participant, protocol, timeline, events, evidenceUrls } = detail;
+  const { session, participant, protocol, timeline, events, evidenceUrls, alerts } = detail;
   const start = timeline?.runStartedAt ?? session.startedAt;
   const offset = (at: number | null) =>
     at === null || start === null ? "" : formatOffset(at - start);
@@ -103,7 +104,7 @@ async function SessionDetailView({ id }: { id: string }) {
 
   return (
     <>
-      {running && <AutoRefresh ms={2500} />}
+      <AutoRefresh ms={2500} limit={running ? undefined : 12} />
       <header className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-3xl font-bold">
@@ -126,6 +127,51 @@ async function SessionDetailView({ id }: { id: string }) {
         )}
         {running && <p className="text-sm text-muted">Live: updates automatically.</p>}
       </header>
+
+      <section aria-labelledby="alerts-heading" className="flex flex-col gap-3">
+        <h2 id="alerts-heading" className="text-2xl font-bold">
+          Escalation alerts
+        </h2>
+        <p className="text-muted">
+          Demo notifications only. No texts or calls are sent. Reviewing an alert does not change
+          the procedure record.
+        </p>
+        {alerts.length === 0 ? (
+          <p>No escalation alerts.</p>
+        ) : (
+          <ul className="flex flex-col gap-3">
+            {alerts.map((alert) => (
+              <li
+                key={alert.id}
+                className="flex flex-wrap items-start gap-4 rounded-xl border-2 border-border p-4"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold">
+                    {alert.kind.replaceAll("_", " ")} ·{" "}
+                    {alert.recipient.kind === "study_team"
+                      ? "Study team"
+                      : `Trusted contact: ${alert.recipient.name}`}
+                  </p>
+                  <p>{alert.message}</p>
+                  <p className="text-sm text-muted">
+                    {offset(alert.createdAt)} ·{" "}
+                    {alert.delivery?.ok
+                      ? `Simulated delivery (${alert.delivery.channel})`
+                      : alert.delivery
+                        ? "Delivery failed — awaiting retry"
+                        : "Delivery pending"}
+                  </p>
+                </div>
+                {alert.status === "reviewed" ? (
+                  <span>Reviewed</span>
+                ) : (
+                  <ReviewAlertButton sessionId={session.id} alertId={alert.id} />
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section aria-labelledby="flags-heading" className="flex flex-col gap-3">
         <h2 id="flags-heading" className="text-2xl font-bold">

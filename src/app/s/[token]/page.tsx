@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { PatientApp } from "@/components/patient/PatientApp";
 import { PatientLoading, SessionMessage } from "@/components/patient/SessionMessage";
 import { HEADINGS, NOTES } from "@/patient/copy";
+import { getRepository } from "@/persistence/server";
 import { loadPatientSession, visionFromQuery } from "@/patient/server";
 
 // Patient flow (mobile), reached through the unguessable session link.
@@ -34,6 +35,14 @@ async function PatientSession({
   const { session, protocol } = data;
   if (session.status === "completed" || session.status === "stopped") {
     return <SessionMessage heading={HEADINGS.sessionEnded} body={NOTES.sessionEnded} />;
+  }
+  if (session.status !== "created" || (await getRepository().listEvents(session.id)).length > 0) {
+    return (
+      <SessionMessage
+        heading="This session has already started"
+        body="Return to the original open page. If it was closed, ask your study team for a new link. Do not repeat the procedure on your own."
+      />
+    );
   }
   return (
     <PatientApp

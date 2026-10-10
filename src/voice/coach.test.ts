@@ -219,17 +219,17 @@ describe("VoiceCoach on the mock autoinjector protocol", () => {
     expect(last()?.text).toBe(SCRIPTS.holdStarted);
     await voice.finish();
 
-    sim.tick(6000);
+    sim.frames("press-hold", 6);
     vi.advanceTimersByTime(200);
     expect(last()?.text).toBe(SCRIPTS.holdStarted); // 4 s left: not yet
 
     for (const n of [3, 2, 1]) {
-      sim.tick(1000);
+      sim.frame("press-hold");
       vi.advanceTimersByTime(200);
       expect(last()?.text).toBe(COUNTDOWN_WORDS[n]);
       await voice.finish();
     }
-    sim.tick(1000);
+    sim.frame("press-hold");
     await voice.finishAll();
     expect(voice.texts().slice(-2)).toEqual([SCRIPTS.holdDone, prompt("remove-pen")]);
     expect(sim.current).toBe("remove-pen");
@@ -299,7 +299,10 @@ describe("VoiceCoach on the mock autoinjector protocol", () => {
     sim.start();
     for (const step of protocol.steps) {
       if (step.verification !== "verbal") sim.frames(step.id, 3);
-      if (step.timerSeconds) sim.tick(step.timerSeconds * 1000);
+      if (step.timerSeconds) {
+        if (step.verification === "verbal") sim.tick(step.timerSeconds * 1000);
+        else sim.frames(step.id, step.timerSeconds);
+      }
       if (step.verification !== "visual") voice.hear("done");
       await voice.finishAll();
     }

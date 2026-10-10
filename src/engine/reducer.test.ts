@@ -230,10 +230,11 @@ describe("timed hold (press and hold 10 seconds)", () => {
     expect(sim.current).toBe("remove-pen");
   });
 
-  it("completes the hold on a tick even between frames", () => {
+  it("stops an unobserved hold instead of completing it on a timer", () => {
     const sim = atHold();
     sim.tick(10_000);
-    expect(sim.progress("press-hold").status).toBe("confirmed");
+    expect(sim.state.stopReason).toMatchObject({ kind: "needs_human", cause: "hold_interrupted" });
+    expect(sim.progress("press-hold").status).not.toBe("confirmed");
   });
 
   it("releasing early on a critical hold is a critical miss", () => {
@@ -297,6 +298,7 @@ describe("pause and resume", () => {
     expect(sim.progress("press-hold").activeMs).toBe(before.activeMs);
 
     sim.resume();
+    sim.frame("press-hold"); // reacquire evidence after the pause
     sim.frames("press-hold", 6);
     expect(sim.progress("press-hold").status).toBe("confirmed");
   });

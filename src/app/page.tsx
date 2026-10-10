@@ -16,7 +16,7 @@ export default function Home() {
       </header>
       <nav className="flex flex-col gap-4 sm:flex-row">
         <Link
-          href="/s/demo"
+          href="/demo"
           className="flex min-h-14 items-center justify-center rounded-xl bg-primary px-6 text-xl font-bold text-primary-foreground"
         >
           Patient demo

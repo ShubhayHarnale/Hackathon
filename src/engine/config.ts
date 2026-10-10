@@ -13,6 +13,7 @@ export const DEFAULT_ENGINE_CONFIG: EngineConfig = {
   maxAttempts: 3,
   maxStepSeconds: 240,
   holdBreakFrames: 3,
+  maxHoldFrameGapMs: 3_000,
   maxConsecutiveVisionErrors: 5,
   visionOutageMs: 30_000,
 };

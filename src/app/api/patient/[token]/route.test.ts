@@ -76,6 +76,49 @@ describe("POST /api/patient/[token]/events", () => {
     });
   });
 
+  it("does not regress status when an older pause is delivered after a resume", async () => {
+    const { session, token } = await newSession();
+    const paused: EngineEvent = {
+      type: "paused",
+      source: "button",
+      reason: "user",
+      eventSeq: 3,
+      at: 5000,
+      run: "real",
+    };
+    const resumed: EngineEvent = {
+      type: "resumed",
+      source: "button",
+      eventSeq: 4,
+      at: 6000,
+      run: "real",
+    };
+    await sendEvents(token, { events: [...events, resumed] });
+    await sendEvents(token, { events: [paused] });
+    await sendEvents(token, { events: [paused] });
+    expect(await getRepository().getSession(session.id)).toMatchObject({ status: "active" });
+    expect(await getRepository().listEvents(session.id)).toHaveLength(5);
+  });
+
+  it("persists and deduplicates escalation receipts through the patient endpoint", async () => {
+    const { session, token } = await newSession();
+    const alert: EngineEvent = {
+      type: "critical_miss",
+      eventSeq: 3,
+      at: 5000,
+      run: "real",
+      missedStepId: "clean-site",
+      observedStepId: "remove-cap",
+      cause: "skipped",
+      evidenceSeq: 7,
+    };
+    for (let i = 0; i < 3; i++)
+      expect((await sendEvents(token, { events: [...events, alert] })).status).toBe(200);
+    const alerts = await getRepository().listAlerts({ sessionId: session.id });
+    expect(alerts).toHaveLength(2);
+    expect(alerts.every((a) => a.delivery?.ok)).toBe(true);
+  });
+
   it("rejects a wrong token without touching any session", async () => {
     const res = await sendEvents("not-a-real-token", { events });
     expect(res.status).toBe(404);

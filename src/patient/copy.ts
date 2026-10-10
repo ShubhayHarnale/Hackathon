@@ -27,7 +27,7 @@ export const HEADINGS = {
   practice: "Practice",
   ready: "Ready to start",
   paused: "Paused",
-  nursePaused: "Calling your nurse",
+  nursePaused: "Contact your nurse",
   visionUnavailable: "Paused",
   completed: "All done",
   cameraDenied: "I can't use the camera",

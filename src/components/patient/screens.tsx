@@ -27,18 +27,24 @@ export function WelcomeScreen({ title, onStart }: { title: string; onStart: () =
 }
 
 export function PermissionsScreen({
+  scripted = false,
   requesting,
   onAllow,
 }: {
+  scripted?: boolean;
   requesting: boolean;
   onAllow: () => void;
 }) {
   return (
     <section className="flex flex-1 flex-col justify-center gap-8">
-      <ScreenHeading>{HEADINGS.permissions}</ScreenHeading>
-      <Lead>{SCRIPTS.permissions}</Lead>
+      <ScreenHeading>{scripted ? "Try the demo" : HEADINGS.permissions}</ScreenHeading>
+      <Lead>
+        {scripted
+          ? "This demo uses simulated camera checks. No camera or microphone permission is needed. Use the buttons to control the procedure."
+          : SCRIPTS.permissions}
+      </Lead>
       <BigButton onClick={onAllow} disabled={requesting}>
-        {LABELS.allow}
+        {scripted ? "Continue with simulated checks" : LABELS.allow}
       </BigButton>
     </section>
   );
@@ -282,7 +288,7 @@ function NoWrapPhone({ text, phone }: { text: string; phone: string }) {
   return (
     <>
       {text.slice(0, at)}
-      <span className="whitespace-nowrap">{phone}</span>
+      <span className="break-words">{phone}</span>
       {text.slice(at + phone.length)}
     </>
   );

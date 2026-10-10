@@ -11,7 +11,7 @@ import {
 /** Where the patient is before the engine takes over (all client-side). */
 export type UiPhase = "welcome" | "permissions" | "camera_check";
 export type MediaPermission = "unknown" | "requesting" | "granted" | "denied" | "unavailable";
-export type VisionMode = "scripted" | "server";
+export type VisionMode = "scripted" | "server" | "replay";
 
 export type Screen =
   | { readonly kind: "welcome" }

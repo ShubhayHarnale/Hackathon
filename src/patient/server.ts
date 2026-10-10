@@ -31,7 +31,11 @@ export function visionFromQuery(
   params: SearchParams,
   fallback: SessionRecord["mode"],
 ): VisionConfig {
+  // A live session cannot silently become a scripted/replay run via its URL.
+  if (fallback === "live") return { kind: "server" };
+  if (fallback === "replay") return { kind: "replay" };
   const vision = first(params.vision);
+  if (vision === "replay") return { kind: "replay" };
   const scenarioParam = first(params.scenario);
   const scenario: ScenarioName =
     scenarioParam && isScenarioName(scenarioParam) ? scenarioParam : "happy";

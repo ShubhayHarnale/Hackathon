@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { EngineEvent, FrameResult, StopReason } from "@/engine";
-import type { AlertKind, AlertRecipient } from "@/escalation";
+import type { AlertKind, AlertRecipient, NotifyResult } from "@/escalation";
 import type { Protocol } from "@/protocol/schema";
 import { hashToken, newToken } from "./tokens";
 import type {
@@ -9,6 +9,7 @@ import type {
   EvidenceFrameRecord,
   FlagReview,
   NewSession,
+  NewAlert,
   ParticipantRecord,
   ProtocolRecord,
   Repository,
@@ -82,6 +83,8 @@ export interface EvidenceRow {
 }
 
 export interface AlertRow {
+  dedupe_key: string | null;
+  delivery: NotifyResult | null;
   id: string;
   session_id: string;
   kind: AlertKind;
@@ -176,6 +179,8 @@ export const mapEvidence = (r: EvidenceRow): EvidenceFrameRecord => ({
 });
 
 export const mapAlert = (r: AlertRow): AlertRecord => ({
+  dedupeKey: r.dedupe_key,
+  delivery: r.delivery,
   id: r.id,
   sessionId: r.session_id,
   kind: r.kind,
@@ -385,13 +390,10 @@ export class SupabaseRepository implements Repository {
 
   async appendEvents(sessionId: string, events: readonly EngineEvent[]) {
     if (events.length === 0) return;
-    const { error } = await this.db.from("step_events").upsert(
-      events.map((e) => eventRow(sessionId, e)),
-      {
-        onConflict: "session_id,event_seq",
-        ignoreDuplicates: true,
-      },
-    );
+    const { error } = await this.db.rpc("append_session_events", {
+      p_session_id: sessionId,
+      p_events: events.map((e) => eventRow(sessionId, e)),
+    });
     if (error) throw new Error(`append events: ${error.message}`);
   }
 
@@ -453,21 +455,34 @@ export class SupabaseRepository implements Repository {
 
   // Alerts
 
-  async createAlert(alert: Omit<AlertRecord, "id" | "status" | "reviewedAt">) {
+  async createAlert(alert: NewAlert) {
+    const key = alert.dedupeKey ?? crypto.randomUUID();
+    const { error } = await this.db.from("alerts").upsert(
+      {
+        session_id: alert.sessionId,
+        dedupe_key: key,
+        kind: alert.kind,
+        recipient: alert.recipient,
+        message: alert.message,
+        created_at: toIso(alert.createdAt),
+      },
+      { onConflict: "dedupe_key", ignoreDuplicates: true },
+    );
+    if (error) throw new Error(`create alert: ${error.message}`);
     const rows = must<AlertRow[]>(
-      await this.db
-        .from("alerts")
-        .insert({
-          session_id: alert.sessionId,
-          kind: alert.kind,
-          recipient: alert.recipient,
-          message: alert.message,
-          created_at: toIso(alert.createdAt),
-        })
-        .select(),
-      "create alert",
+      await this.db.from("alerts").select("*").eq("dedupe_key", key),
+      "get alert",
     );
     return mapAlert(rows[0]!);
+  }
+
+  async recordAlertDelivery(id: string, delivery: NotifyResult) {
+    const { error } = await this.db
+      .from("alerts")
+      .update({ delivery })
+      .eq("id", id)
+      .or("delivery.is.null,delivery->>ok.eq.false");
+    if (error) throw new Error(`record delivery: ${error.message}`);
   }
 
   async listAlerts(filter: { sessionId?: string; status?: AlertStatus } = {}) {
@@ -478,13 +493,15 @@ export class SupabaseRepository implements Repository {
   }
 
   async markAlertReviewed(id: string) {
+    const { error } = await this.db
+      .from("alerts")
+      .update({ status: "reviewed", reviewed_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("status", "open");
+    if (error) throw new Error(`review alert: ${error.message}`);
     const rows = must<AlertRow[]>(
-      await this.db
-        .from("alerts")
-        .update({ status: "reviewed", reviewed_at: new Date().toISOString() })
-        .eq("id", id)
-        .select(),
-      "review alert",
+      await this.db.from("alerts").select("*").eq("id", id),
+      "get alert",
     );
     if (!rows[0]) throw new Error(`alert ${id} not found`);
     return mapAlert(rows[0]);

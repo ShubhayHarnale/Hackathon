@@ -26,7 +26,7 @@ import {
   VisionUnavailableScreen,
   WelcomeScreen,
 } from "./screens";
-import { BigButton, CallNurseLink } from "./ui";
+import { BigButton, CallNurseLink, ScreenHeading } from "./ui";
 
 export interface PatientAppProps {
   readonly token: string;
@@ -43,6 +43,9 @@ export interface PatientAppProps {
 export function PatientApp({ token, sessionId, protocol, vision }: PatientAppProps) {
   const phone = publicEnv.NEXT_PUBLIC_TRIAL_NURSE_PHONE;
   const scripted = vision.kind === "scripted";
+  const replay = vision.kind === "replay";
+  const [replayFile, setReplayFile] = useState<string | null>(null);
+  const [replayError, setReplayError] = useState<string | null>(null);
   const [phase, setPhase] = useState<UiPhase>("welcome");
   const [camera, setCamera] = useState<MediaPermission>("unknown");
   const [mic, setMic] = useState<MediaPermission>("unknown");
@@ -94,9 +97,32 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
   );
 
   // Release the camera when leaving the page.
-  useEffect(() => () => media.stopStream(), [media]);
+  useEffect(
+    () => () => {
+      media.stopStream();
+      media.clearReplay();
+    },
+    [media],
+  );
+
+  useEffect(() => {
+    if (!replay) return;
+    if (engine.status !== "active") media.pauseReplay();
+    else
+      void media.playReplay().catch(() => {
+        controller.command("pause", "button");
+        setReplayError("The video could not play. Check that this browser supports the recording.");
+      });
+  }, [replay, engine.status, media, controller]);
 
   const requestMedia = useCallback(async () => {
+    if (scripted) {
+      setMic("unavailable");
+      voice.start(false);
+      setPhase("camera_check");
+      controller.startPractice();
+      return;
+    }
     setCamera("requesting");
     const result = await requestCameraAndMic();
     await media.setStream(result.stream);
@@ -118,11 +144,24 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
     return s ? controller.step(s.id) : undefined;
   })();
 
-  const showCamera = screen.kind === "camera_check" || screen.kind === "step";
+  const showCamera =
+    screen.kind === "camera_check" ||
+    screen.kind === "step" ||
+    (replay && screen.kind === "permissions");
 
   return (
     <div className="flex min-h-dvh flex-col">
-      {protocol.isDemo && <DemoBanner />}
+      {(protocol.isDemo || scripted || replay) && <DemoBanner />}
+      {(scripted || replay) && (
+        <p className="bg-surface px-4 py-2 text-center text-xl font-bold">
+          {replay ? "Recorded video replay" : "Scripted demo — simulated checks"}
+        </p>
+      )}
+      {replayError && (
+        <p role="alert" className="px-4 py-2 text-xl text-danger">
+          {replayError}
+        </p>
+      )}
       {!online && (
         <p role="alert" className="bg-danger px-4 py-3 text-xl font-bold text-danger-foreground">
           {NOTES.offline}
@@ -133,7 +172,16 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
         <CameraView
           attachVideo={attachVideo}
           visible={showCamera}
-          live={camera === "granted"}
+          live={camera === "granted" || (replay && !!replayFile)}
+          replay={replay}
+          onEnded={() => {
+            if (replay && engine.status === "active") {
+              setReplayError(
+                "The recording ended before every step was verified. Use a longer recording in a new demo.",
+              );
+              controller.dispatch({ type: "stop", at: Date.now(), by: "system" });
+            }
+          }}
           compact={screen.kind === "step"}
         />
 
@@ -146,11 +194,60 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
             }}
           />
         )}
-        {screen.kind === "permissions" && (
+        {screen.kind === "permissions" && !replay && (
           <PermissionsScreen
+            scripted={scripted}
             requesting={camera === "requesting"}
             onAllow={() => void requestMedia()}
           />
+        )}
+        {screen.kind === "permissions" && replay && (
+          <section className="flex flex-col gap-5">
+            <ScreenHeading>Choose a recorded procedure</ScreenHeading>
+            <p className="text-xl">
+              Use a synthetic prop demonstration, starting at the first procedure step. The video
+              stays on this device; sampled frames are sent for checking and evidence is saved for
+              the study team.
+            </p>
+            <p className="text-xl">
+              Replay uses the configured server vision provider. With the mock provider, all visual
+              checks are simulated.
+            </p>
+            <label className="flex flex-col gap-2 text-xl font-bold">
+              Video recording
+              <input
+                type="file"
+                accept="video/*"
+                className="min-h-16 w-full min-w-0 rounded-xl border-2 border-border p-3"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setReplayError(null);
+                  void media
+                    .setReplay(file)
+                    .then(() => setReplayFile(file.name))
+                    .catch(() =>
+                      setReplayError("Could not load this recording. Choose another video."),
+                    );
+                }}
+              />
+            </label>
+            {replayFile && <p className="break-words text-xl">Selected: {replayFile}</p>}
+            <BigButton
+              disabled={!replayFile}
+              onClick={() => {
+                voice.start(false);
+                void media
+                  .playReplay()
+                  .then(() => controller.start())
+                  .catch(() =>
+                    setReplayError("This video cannot play. Try an MP4 or WebM recording."),
+                  );
+              }}
+            >
+              Start replay
+            </BigButton>
+          </section>
         )}
         {screen.kind === "camera_denied" && (
           <CameraDeniedScreen
@@ -234,11 +331,15 @@ function CameraView({
   visible,
   live,
   compact,
+  replay = false,
+  onEnded,
 }: {
   attachVideo: (el: HTMLVideoElement | null) => void;
   visible: boolean;
   live: boolean;
   compact: boolean;
+  replay?: boolean;
+  onEnded: () => void;
 }) {
   // The <video> stays mounted on every screen so the stream survives screen changes.
   return (
@@ -247,9 +348,10 @@ function CameraView({
         ref={attachVideo}
         playsInline
         muted
-        autoPlay
-        aria-label="Your camera"
-        className={`w-full -scale-x-100 rounded-2xl bg-surface object-cover ${compact ? "max-h-[28dvh]" : "aspect-[4/3]"} ${live ? "" : "hidden"}`}
+        autoPlay={!replay}
+        onEnded={onEnded}
+        aria-label={replay ? "Recorded procedure preview" : "Your camera"}
+        className={`w-full ${replay ? "" : "-scale-x-100"} rounded-2xl bg-surface object-cover ${compact ? "max-h-[28dvh]" : "aspect-[4/3]"} ${live ? "" : "hidden"}`}
       />
       {!live && visible && (
         <div className="flex min-h-20 items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface px-4 py-2 text-center text-xl text-muted">

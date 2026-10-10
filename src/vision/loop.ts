@@ -66,7 +66,15 @@ export class VisionLoop {
     try {
       const capturedAt = this.now();
       const image = await this.deps.capture();
-      if (!image) return false;
+      if (!image) {
+        this.deps.dispatch({
+          type: "frame_error",
+          at: this.now(),
+          seq: ++this.seq,
+          kind: "provider",
+        });
+        return false;
+      }
       const seq = ++this.seq;
       this.frames.push({ ...image, seq, capturedAt });
 
@@ -88,6 +96,14 @@ export class VisionLoop {
         this.deps.dispatch({ type: "frame_error", at: this.now(), seq, kind });
       }
       return true;
+    } catch {
+      this.deps.dispatch({
+        type: "frame_error",
+        at: this.now(),
+        seq: ++this.seq,
+        kind: "provider",
+      });
+      return false;
     } finally {
       this.inFlight = false;
     }

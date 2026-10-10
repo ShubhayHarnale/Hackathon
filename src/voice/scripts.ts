@@ -21,7 +21,7 @@ export const ISSUE_PHRASES: Record<IssueCode, string> = {
 export const SCRIPTS = {
   welcome: "Hello. I'll guide you through your procedure one step at a time.",
   permissions:
-    "I need to use your camera to see each step, and your microphone so you can talk to me. Nothing is shared outside your study team.",
+    "I need to use your camera to see each step, and your microphone so you can talk to me. Camera frames are sent for checking. Evidence frames are saved for your study team.",
   practiceIntro: "Let's do a quick practice first, so I know the camera can see you.",
   practiceDone: "Great, the camera can see you. When you're ready, we'll start.",
   holdStarted: "Hold it there. I'll count the time for you.",
@@ -31,7 +31,7 @@ export const SCRIPTS = {
   sayDone: 'Say "done" when you have finished, or tap the Done button.',
   paused: 'Paused. Say "continue" or tap Continue when you\'re ready.',
   resumed: "Okay, let's carry on.",
-  nurseCalled: "Calling your study nurse.",
+  nurseCalled: "Please tap Call my nurse to open your phone and place the call.",
   visionUnavailable:
     "I'm having trouble checking the camera, so I've paused. Say \"continue\" to try again.",
   completed: "All done. Thank you. Your study team will see that you finished.",

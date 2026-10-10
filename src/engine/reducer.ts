@@ -180,7 +180,13 @@ function advanceClock(ctx: Ctx): void {
   run.clockAt = Math.max(run.clockAt, ctx.at);
   if (!p || delta === 0) return;
   p.activeMs += delta;
-  if (p.status === "holding") p.holdMs += delta;
+  if (
+    p.status === "holding" &&
+    p.holdBreak === 0 &&
+    p.lastMatchAt !== null &&
+    ctx.at - p.lastMatchAt <= ctx.config.maxHoldFrameGapMs
+  )
+    p.holdMs += delta;
 }
 
 function checkTimers(ctx: Ctx): void {
@@ -191,11 +197,13 @@ function checkTimers(ctx: Ctx): void {
   if (!step || !p || p.status === "confirmed") return;
   const timerMs = (step.timerSeconds ?? 0) * 1000;
 
-  if (p.status === "holding" && p.holdMs >= timerMs) {
-    p.status = "active";
-    p.visualOk = true;
-    p.methods.push("hold");
-    tryConfirm(ctx);
+  // A timer alone can never confirm a hold. Fresh matching frames do that below.
+  if (
+    p.status === "holding" &&
+    p.lastMatchAt !== null &&
+    ctx.at - p.lastMatchAt > ctx.config.maxHoldFrameGapMs
+  ) {
+    breakHold(ctx, step, p);
     return;
   }
   if (isWait(step) && !p.waitOk && p.activeMs >= timerMs) {
@@ -254,8 +262,15 @@ function onFrame(ctx: Ctx, input: Extract<EngineInput, { type: "frame" }>): void
 
 function onMatch(ctx: Ctx, step: EngineStep, p: StepProgress, seq: number): void {
   p.lastMatchSeq = seq;
+  p.lastMatchAt = ctx.at;
   if (p.status === "holding") {
     p.holdBreak = 0;
+    if (p.holdMs >= (step.timerSeconds ?? 0) * 1000) {
+      p.status = "active";
+      p.visualOk = true;
+      p.methods.push("hold");
+      tryConfirm(ctx);
+    }
     return;
   }
   if (!needsVisual(step) || p.visualOk) return;
@@ -446,6 +461,7 @@ function onResume(ctx: Ctx, source: CommandSource): void {
     // Evidence must be consecutive in real time; frames from before the pause don't count.
     p.matchStreak = 0;
     p.holdBreak = 0;
+    p.lastMatchAt = null;
   }
   s.vision.consecutiveErrors = 0;
   s.vision.downSince = null;

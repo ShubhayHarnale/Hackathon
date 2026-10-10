@@ -45,6 +45,18 @@ describe("PatientController", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
 
+  it("turns the demo no-response timeout into a needs-human stop", async () => {
+    const { controller, sent } = setup("no-response");
+    controller.start();
+    await vi.advanceTimersByTimeAsync(16_000);
+    expect(controller.runner.state.stopReason).toMatchObject({
+      kind: "needs_human",
+      cause: "step_timeout",
+    });
+    expect(sent.some((e) => e.type === "needs_human")).toBe(true);
+    controller.dispose();
+  });
+
   it("runs practice and the procedure, persisting every event and evidence frame", async () => {
     const { controller, sent, evidence } = setup();
     const seen: EngineEvent[] = [];

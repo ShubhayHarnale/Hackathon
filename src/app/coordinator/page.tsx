@@ -56,7 +56,9 @@ const time = (ms: number | null) =>
 async function SessionTable() {
   await connection();
   const rows = await loadSessionList();
-  const live = rows.some((r) => ["practice", "active", "paused"].includes(r.session.status));
+  const live = rows.some((r) =>
+    ["created", "practice", "active", "paused"].includes(r.session.status),
+  );
   if (rows.length === 0) {
     return (
       <p className="text-lg text-muted">

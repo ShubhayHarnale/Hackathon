@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { getRepository } from "@/persistence/server";
 import { EventsBodySchema } from "@/patient/schema";
-import { sessionPatchFor } from "@/patient/session-status";
+import { processEscalations } from "@/escalation/policy";
+import { getNotifier } from "@/escalation/server";
 
 /**
  * Appends engine events for the session behind the link token. Idempotent on eventSeq,
@@ -23,7 +24,12 @@ export async function POST(request: Request, ctx: RouteContext<"/api/patient/[to
   }
 
   await repo.appendEvents(session.id, body.data.events);
-  const patch = sessionPatchFor(session, body.data.events);
-  if (Object.keys(patch).length > 0) await repo.updateSession(session.id, patch);
+  // Revisit the canonical log on retries, including alerts whose delivery failed.
+  await processEscalations(
+    repo,
+    getNotifier(),
+    session,
+    (await repo.listEvents(session.id)).map((e) => e.event),
+  );
   return Response.json({ ok: true, accepted: body.data.events.length });
 }

@@ -20,7 +20,7 @@ const BASE =
 /** `full`: the screen's main actions. `bar`: the always-visible bottom controls. */
 const SIZE = {
   full: "w-full gap-3 px-6 py-3 text-2xl",
-  bar: "gap-2 whitespace-nowrap px-4 text-xl",
+  bar: "gap-2 px-3 py-2 text-xl",
 } as const;
 type Size = keyof typeof SIZE;
 
@@ -88,7 +88,7 @@ export function ScreenHeading({
   className?: string;
 }) {
   const ref = useRef<HTMLHeadingElement>(null);
-  useEffect(() => ref.current?.focus({ preventScroll: false }), []);
+  useEffect(() => ref.current?.focus({ preventScroll: false }), [children]);
   return (
     <h1 ref={ref} tabIndex={-1} className={`text-4xl font-bold leading-tight ${className}`}>
       {children}

@@ -27,6 +27,9 @@ export function sessionPatchFor(
       case "practice_started":
         status = "practice";
         break;
+      case "practice_completed":
+        status = "created";
+        break;
       case "run_started":
         status = "active";
         if (session.startedAt === null && patch.startedAt === undefined) patch.startedAt = e.at;

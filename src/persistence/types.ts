@@ -1,5 +1,5 @@
 import type { EngineEvent, FrameResult, Millis, StepId, StopReason } from "@/engine";
-import type { AlertKind, AlertRecipient } from "@/escalation";
+import type { AlertKind, AlertRecipient, NotifyResult } from "@/escalation";
 import type { Protocol } from "@/protocol";
 
 /** Synthetic participants only: display name and trial number, no PHI. */
@@ -74,6 +74,8 @@ export interface FlagReview {
 }
 
 export interface AlertRecord {
+  readonly dedupeKey: string | null;
+  readonly delivery: NotifyResult | null;
   readonly id: string;
   readonly sessionId: string;
   readonly kind: AlertKind;
@@ -83,6 +85,13 @@ export interface AlertRecord {
   readonly createdAt: Millis;
   readonly reviewedAt: Millis | null;
 }
+
+export type NewAlert = Omit<
+  AlertRecord,
+  "id" | "status" | "reviewedAt" | "delivery" | "dedupeKey"
+> & {
+  readonly dedupeKey?: string;
+};
 
 export interface NewSession {
   readonly participantId: string;
@@ -127,7 +136,8 @@ export interface Repository {
   /** Short-lived URL for a private evidence frame. */
   getEvidenceUrl(frame: EvidenceFrameRecord): Promise<string>;
 
-  createAlert(alert: Omit<AlertRecord, "id" | "status" | "reviewedAt">): Promise<AlertRecord>;
+  createAlert(alert: NewAlert): Promise<AlertRecord>;
+  recordAlertDelivery(id: string, delivery: NotifyResult): Promise<void>;
   listAlerts(filter?: {
     sessionId?: string;
     status?: AlertStatus;

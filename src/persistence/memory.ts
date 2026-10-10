@@ -1,3 +1,5 @@
+import type { NotifyResult } from "@/escalation";
+import { sessionPatchFor } from "@/patient/session-status";
 import type { EngineEvent } from "@/engine";
 import type { Protocol } from "@/protocol/schema";
 import type {
@@ -6,6 +8,7 @@ import type {
   EvidenceFrameRecord,
   FlagReview,
   NewSession,
+  NewAlert,
   ParticipantRecord,
   ProtocolRecord,
   Repository,
@@ -180,6 +183,20 @@ export class MemoryRepository implements Repository {
       log.set(event.eventSeq, { sessionId, event, recordedAt: this.now() });
     }
     this.events.set(sessionId, log);
+    const session = this.sessions.get(sessionId)!;
+    // Fold the canonical log, not the submitted batch: late retries cannot undo a resume.
+    const patch = sessionPatchFor(
+      { status: "created", startedAt: null, endedAt: null },
+      [...log.values()].map((entry) => entry.event),
+    );
+    this.sessions.set(sessionId, {
+      ...session,
+      status: "created",
+      startedAt: null,
+      endedAt: null,
+      stopReason: null,
+      ...patch,
+    });
   }
 
   async listEvents(sessionId: string) {
@@ -222,15 +239,27 @@ export class MemoryRepository implements Repository {
 
   // --- Alerts --------------------------------------------------------------------------
 
-  async createAlert(alert: Omit<AlertRecord, "id" | "status" | "reviewedAt">) {
+  async createAlert(alert: NewAlert) {
+    if (alert.dedupeKey) {
+      const existing = [...this.alerts.values()].find((a) => a.dedupeKey === alert.dedupeKey);
+      if (existing) return existing;
+    }
     const record: AlertRecord = {
       ...alert,
+      dedupeKey: alert.dedupeKey ?? null,
+      delivery: null,
       id: crypto.randomUUID(),
       status: "open",
       reviewedAt: null,
     };
     this.alerts.set(record.id, record);
     return record;
+  }
+
+  async recordAlertDelivery(id: string, delivery: NotifyResult) {
+    const existing = this.alerts.get(id);
+    if (!existing) throw new Error(`alert ${id} not found`);
+    if (!existing.delivery?.ok) this.alerts.set(id, { ...existing, delivery });
   }
 
   async listAlerts(filter: { sessionId?: string; status?: AlertStatus } = {}) {
@@ -243,6 +272,7 @@ export class MemoryRepository implements Repository {
   async markAlertReviewed(id: string) {
     const existing = this.alerts.get(id);
     if (!existing) throw new Error(`alert ${id} not found`);
+    if (existing.status === "reviewed") return existing;
     const updated: AlertRecord = { ...existing, status: "reviewed", reviewedAt: this.now() };
     this.alerts.set(id, updated);
     return updated;

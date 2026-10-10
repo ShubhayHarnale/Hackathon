@@ -214,7 +214,15 @@ async function runScenario(scenario: ScenarioName, maxTicks = 200) {
 describe("scripted scenarios end to end", () => {
   it("covers every scenario", () => {
     expect(Object.keys(SCENARIOS).sort()).toEqual(
-      ["early-release", "flicker", "happy", "outage", "poor-camera", "skip-critical"].sort(),
+      [
+        "early-release",
+        "flicker",
+        "happy",
+        "outage",
+        "poor-camera",
+        "skip-critical",
+        "no-response",
+      ].sort(),
     );
   });
 

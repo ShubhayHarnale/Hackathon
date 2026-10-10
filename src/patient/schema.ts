@@ -5,7 +5,7 @@ import { FrameResultSchema } from "@/vision/schema";
 /**
  * Wire formats for the patient APIs. The client sends engine events exactly as the engine
  * emitted them; the server re-validates every field before anything reaches the
- * repository, so a tampered request can't write an event the engine couldn't produce.
+ * repository, so malformed data cannot enter the repository. This validates shape, not event provenance.
  */
 
 const StepId = z.string().min(1).max(64);

@@ -13,6 +13,8 @@ type Frame = Omit<CapturedFrame, "seq" | "capturedAt">;
 export class PatientMedia {
   private video: HTMLVideoElement | null = null;
   private canvas: HTMLCanvasElement | null = null;
+  private lastVideoTime = -1;
+  private replayUrl: string | null = null;
   private stream: MediaStream | null = null;
   /** What the placeholder frame is labelled with (the current step id). */
   label: () => string = () => "";
@@ -43,10 +45,43 @@ export class PatientMedia {
     this.stream = null;
   }
 
+  async setReplay(file: File): Promise<void> {
+    this.stopStream();
+    this.clearReplay();
+    if (!this.video) throw new Error("Video preview unavailable");
+    this.lastVideoTime = -1;
+    this.replayUrl = URL.createObjectURL(file);
+    this.video.srcObject = null;
+    this.video.src = this.replayUrl;
+    this.video.load();
+  }
+
+  async playReplay(): Promise<void> {
+    if (!this.video || !this.replayUrl) throw new Error("Choose a video first");
+    await this.video.play();
+  }
+
+  pauseReplay(): void {
+    this.video?.pause();
+  }
+
+  clearReplay(): void {
+    if (this.replayUrl) URL.revokeObjectURL(this.replayUrl);
+    this.replayUrl = null;
+  }
+
   capture = async (): Promise<Frame | null> => {
     const { video, canvas } = this;
     if (!canvas) return null;
-    if (this.stream && video && video.readyState >= 2 && video.videoWidth > 0) {
+    if (
+      (this.stream || this.replayUrl) &&
+      video &&
+      !video.ended &&
+      video.readyState >= 2 &&
+      video.videoWidth > 0
+    ) {
+      if (video.currentTime === this.lastVideoTime) return null;
+      this.lastVideoTime = video.currentTime;
       return captureVideoFrame(video, canvas);
     }
     return this.scripted ? placeholderFrame(canvas, this.label()) : null;
