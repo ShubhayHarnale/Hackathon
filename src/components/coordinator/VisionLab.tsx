@@ -21,8 +21,8 @@ import {
   type ScenarioName,
 } from "@/vision";
 import {
-  createBrowserVoiceProvider,
   createVoiceCoach,
+  createVoiceProvider,
   type VoiceCoach,
   type VoiceLogEntry,
   type VoiceProvider,
@@ -107,7 +107,7 @@ export function VisionLab({
   /** Attaches a voice coach to the runner. Runs inside a click, so mobile allows speech. */
   function attachVoice(runner: EngineRunner) {
     detachVoice();
-    voiceRef.current ??= createBrowserVoiceProvider();
+    voiceRef.current ??= createVoiceProvider();
     setVoiceCaps(voiceRef.current.capabilities);
     const coach = createVoiceCoach({
       provider: voiceRef.current,
@@ -121,6 +121,8 @@ export function VisionLab({
     const unsubscribe = runner.subscribe(coach.handleEvents);
     coachRef.current = { coach, detach: unsubscribe };
     coach.start();
+    // Switched on mid-run: say where the patient is.
+    if (runner.state.status !== "idle") coach.repeat();
   }
 
   function toggleVoice(on: boolean) {

@@ -4,3 +4,4 @@ export * from "./commands";
 export * from "./speech-queue";
 export * from "./coach";
 export { createBrowserVoiceProvider, detectBrowserVoiceSupport, pickVoice } from "./browser";
+export { createVoiceProvider } from "./provider";
