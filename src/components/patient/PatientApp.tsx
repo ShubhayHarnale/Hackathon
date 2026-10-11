@@ -53,6 +53,7 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
   const [camera, setCamera] = useState<MediaPermission>("unknown");
   const [mic, setMic] = useState<MediaPermission>("unknown");
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>("off");
+  const [narrate, setNarrate] = useState(false);
   const online = useOnline();
 
   const [{ controller, media, voice, attachVideo, attachCanvas }] = useState(() => {
@@ -178,6 +179,34 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
         ) : (
           <Wordmark />
         )}
+        <button
+          type="button"
+          aria-pressed={narrate}
+          onClick={() => {
+            const next = !narrate;
+            voice.setNarration(next);
+            setNarrate(next);
+          }}
+          className={`flex min-h-12 items-center gap-2 rounded-full border-2 px-4 text-lg font-bold ${
+            narrate
+              ? "border-primary bg-primary text-primary-foreground"
+              : "border-border bg-surface text-foreground"
+          }`}
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="size-5" fill="currentColor">
+            <path d="M4 9.5v5h3.5L12 19V5L7.5 9.5z" />
+            {narrate && (
+              <path
+                d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              />
+            )}
+          </svg>
+          Read steps aloud: {narrate ? "On" : "Off"}
+        </button>
         {(scripted || replay) && (
           <p className="rounded-full border-2 border-hairline bg-surface px-4 py-1.5 text-lg font-bold">
             {replay ? "Recorded video replay" : "Scripted demo — simulated checks"}

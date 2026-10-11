@@ -399,6 +399,7 @@ describe("VoiceCoach in quiet mode (the patient app)", () => {
       now: () => sim.t,
       getState: () => sim.runner.state,
       quiet: true,
+      patience: true,
     });
     sim.runner.subscribe(coach.handleEvents);
     coach.start();
@@ -425,6 +426,12 @@ describe("VoiceCoach in quiet mode (the patient app)", () => {
     await voice.finishAll();
     expect(voice.texts().at(-1)).toContain(prompt("check-expiry"));
 
+    // Turning narration on reads where the participant is; off goes quiet again.
+    coach.setQuiet(false);
+    await voice.finishAll();
+    expect(voice.texts().at(-1)).toContain(prompt("check-expiry"));
+    coach.setQuiet(true);
+
     // A critical step is skipped: the stop line is spoken.
     sim.say("check-expiry", "tap");
     sim.frames("check-expiry", 3);
@@ -432,6 +439,38 @@ describe("VoiceCoach in quiet mode (the patient app)", () => {
     await voice.finishAll();
     expect(sim.state.stopReason?.kind).toBe("critical_miss");
     expect(voice.texts().at(-1)).toBe(SCRIPTS.stopCriticalMiss);
+    coach.dispose();
+  });
+});
+
+describe("VoiceCoach patience on critical steps", () => {
+  it("corrects a critical step at once, without waiting", async () => {
+    const sim = new Sim(protocol.steps, { practiceSteps: PRACTICE_STEPS });
+    const voice = new FakeVoiceProvider();
+    const coach = createVoiceCoach({
+      provider: voice,
+      stepsById,
+      dispatch: (input) => sim.runner.dispatch(input),
+      now: () => sim.t,
+      getState: () => sim.runner.state,
+      quiet: true,
+      patience: true,
+    });
+    sim.runner.subscribe(coach.handleEvents);
+    coach.start();
+    sim.start();
+    // Reach "clean-site", the first critical step.
+    sim.frames("wash-hands", 3);
+    sim.say("read-label", "tap");
+    sim.say("check-expiry", "tap");
+    sim.frames("check-expiry", 3);
+    await voice.finishAll();
+    expect(sim.current).toBe("clean-site");
+    expect(voice.texts()).toEqual([]);
+    // One bad frame on a critical step is spoken immediately.
+    sim.frame(null, { confidence: 0.2, issue: "hands_not_visible" });
+    await voice.finishAll();
+    expect(voice.texts()).toEqual([ISSUE_PHRASES.hands_not_visible]);
     coach.dispose();
   });
 });

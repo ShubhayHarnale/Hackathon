@@ -33,6 +33,8 @@ export class PatientVoice {
   private status: VoiceStatus = "off";
   /** Whether the coach may listen (set by `start` from the microphone answer). */
   private listenAllowed = false;
+  /** Read each step aloud (on) or speak only when something needs attention (off). */
+  private narrate = false;
 
   constructor(
     private readonly controller: PatientController,
@@ -46,6 +48,18 @@ export class PatientVoice {
   /** Call from a tap. Creates the provider and coach (silent until `start`). */
   prime(): void {
     this.ensure().provider.prime?.();
+  }
+
+  get narrating(): boolean {
+    return this.narrate;
+  }
+
+  /** Call from a tap (so mobile browsers allow speech). Turns step narration on or off. */
+  setNarration(on: boolean): void {
+    this.narrate = on;
+    const { provider, coach } = this.ensure();
+    provider.prime?.();
+    coach.setQuiet(!on);
   }
 
   /** Starts speaking, and listening if the microphone is allowed. Idempotent. */
@@ -88,8 +102,11 @@ export class PatientVoice {
     const controller = this.controller;
     const coach = createVoiceCoach({
       provider,
-      // Older adults: speak up only when something needs their attention (or on Repeat).
-      quiet: true,
+      // Off by default: speak up only when something needs attention (or on Repeat).
+      // The participant can turn step narration on with "Read steps aloud".
+      quiet: !this.narrate,
+      // Normal steps wait for a problem to persist; critical steps are corrected at once.
+      patience: true,
       stepsById: controller.stepsById,
       dispatch: (input) => controller.dispatch(input),
       now: () => Date.now(),

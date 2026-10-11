@@ -19,16 +19,16 @@ export interface VoiceStep {
   readonly spokenPrompt: string;
   readonly verification: Verification;
   readonly timerSeconds?: number | undefined;
-  /** Critical steps get corrections sooner in quiet mode. */
+  /** Critical steps get corrections immediately (no patience window). */
   readonly critical?: boolean | undefined;
 }
 
 /**
- * Quiet-mode patience: a correction is spoken only once the same problem has persisted
- * for this many consecutive reports (about one per second), so a momentary slip passes
- * silently. Critical steps speak up sooner. Stops are never delayed.
+ * Patience: on normal steps a correction is spoken only once the same problem has
+ * persisted for this many consecutive reports (about one per second), so a momentary
+ * slip passes silently. On critical steps it is spoken at once. Stops are never delayed.
  */
-const PATIENCE_FRAMES = { normal: 3, critical: 2 } as const;
+const PATIENCE_FRAMES = { normal: 3, critical: 1 } as const;
 const PATIENCE_GAP_MS = 2500;
 
 export type VoiceLogEntry =
@@ -72,6 +72,8 @@ export interface VoiceCoachOptions {
    * Routine prompts, confirmations, pauses and completion stay on screen only.
    */
   readonly quiet?: boolean;
+  /** Wait for a problem to persist before correcting (normal steps only). Default false. */
+  readonly patience?: boolean;
   /** Same-key cooldown for the speech queue. Default 6000 ms. */
   readonly cooldownMs?: number;
   /** Count the last N seconds of a hold out loud (1..5). 0 turns it off. Default 3. */
@@ -88,6 +90,8 @@ export interface VoiceCoach {
   handleCommand(command: VoiceCommand, transcript?: string): void;
   /** Says the current instruction again. */
   repeat(): void;
+  /** Switches step narration off (alerts only) or on; turning it on reads the current step. */
+  setQuiet(quiet: boolean): void;
   /** Starts speaking and listening. Call from a tap so mobile browsers allow speech. */
   start(): void;
   /** Goes quiet: stops listening, cuts off speech, ignores further events. */
@@ -114,9 +118,11 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
     setInterval: (fn, ms) => setInterval(fn, ms),
     clearInterval: (h) => clearInterval(h as ReturnType<typeof setInterval>),
   };
-  const quiet = options.quiet ?? false;
+  let quiet = options.quiet ?? false;
+  const patience = options.patience ?? false;
   let issueStreak: { key: string; count: number; at: Millis } | null = null;
-  const countdownFrom = quiet ? 0 : Math.max(0, Math.min(5, options.countdownFrom ?? 3));
+  const baseCountdownFrom = Math.max(0, Math.min(5, options.countdownFrom ?? 3));
+  const countdownFrom = () => (quiet ? 0 : baseCountdownFrom);
 
   const queue = new SpeechQueue({
     speak: (u) => provider.speak(u),
@@ -151,7 +157,7 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
   function startCountdown(stepId: StepId): void {
     stopCountdown();
     const timerSeconds = stepsById.get(stepId)?.timerSeconds;
-    if (!options.getState || countdownFrom === 0 || !timerSeconds) return;
+    if (!options.getState || countdownFrom() === 0 || !timerSeconds) return;
     const said = new Set<number>();
     const handle = timers.setInterval(() => pollCountdown(stepId, timerSeconds), HOLD_POLL_MS);
     countdown = { stepId, handle, said };
@@ -171,7 +177,7 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
       return;
     }
     const left = Math.ceil((timerSeconds * 1000 - p.holdMs) / 1000);
-    if (left < 1 || left > countdownFrom || countdown.said.has(left)) return;
+    if (left < 1 || left > countdownFrom() || countdown.said.has(left)) return;
     countdown.said.add(left);
     const text = COUNTDOWN_WORDS[left];
     if (!text) return;
@@ -246,7 +252,7 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
         return;
       }
       case "correction": {
-        if (quiet) {
+        if (patience) {
           const key = `${event.stepId}:${event.issue}`;
           const t = now();
           issueStreak =
@@ -380,6 +386,20 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
     }
   }
 
+  function setQuiet(next: boolean): void {
+    if (quiet === next) return;
+    quiet = next;
+    if (next) {
+      // Narration off: stop talking now; alerts still come through.
+      stopCountdown();
+      queue.interrupt();
+      return;
+    }
+    // Narration on: read where the participant is right now.
+    const s = state();
+    if (s && (s.status === "active" || s.status === "practice")) repeat();
+  }
+
   function repeat(): void {
     if (!active) return;
     const s = state();
@@ -444,6 +464,7 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
     handleEvents,
     handleCommand,
     repeat,
+    setQuiet,
     start,
     stop,
     dispose() {

@@ -299,7 +299,7 @@ describe("Gemini vision provider", () => {
     expect(params).toMatchObject({
       store: false,
       generation_config: { thinking_level: "low", temperature: 0 },
-      input: [{ type: "text" }, { type: "image", mime_type: "image/jpeg", resolution: "low" }],
+      input: [{ type: "text" }, { type: "image", mime_type: "image/jpeg", resolution: "medium" }],
     });
   });
 

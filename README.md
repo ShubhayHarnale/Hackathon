@@ -125,7 +125,7 @@ Turns pasted procedure text into reviewed, versioned steps. **The compiler draft
 ```
 
 - **Providers:**
-  - `gemini` (server-only): Interactions API, `store: false`, low image resolution, `thinking_level: "low"` (3.8 Flash rejects `"minimal"`), temperature 0, a 4 s timeout, and structured output whose step ids are restricted to the candidates or `"none"`.
+  - `gemini` (server-only): Interactions API, `store: false`, medium image resolution (same ~0.8 s as low, but finger detail is visible), `thinking_level: "low"` (3.8 Flash rejects `"minimal"`), temperature 0, a 4 s timeout, and structured output whose step ids are restricted to the candidates or `"none"`.
   - `mock`: always sees the current step.
   - **Scripted scenarios** (browser-side, no camera or key needed): `happy`, `flicker`, `poor-camera`, `skip-critical`, `early-release`, `no-response` and `outage`.
 - **What the model is asked:** the current step plus the next 3 steps, so skips are visible. It only classifies frames: it picks an id and an issue code from a fixed list, and never writes text for the patient.

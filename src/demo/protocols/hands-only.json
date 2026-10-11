@@ -25,8 +25,8 @@
       "id": "hold-closed-fist",
       "order": 3,
       "instruction": "Make a fist and keep it visible",
-      "spokenPrompt": "Close that hand into a fist, with your thumb folded over your fingers. Keep it in view while I count five seconds, until I say you are done.",
-      "successCriteria": "One closed fist is clearly visible: fingers curled into the palm and thumb folded across the curled fingers, not extended upward. The other hand is lowered.",
+      "spokenPrompt": "Close that hand into a fist, with your thumb wrapped on the outside, across your fingers. Keep it in view while I count five seconds, until I say you are done.",
+      "successCriteria": "Exactly one closed fist is clearly visible with all four fingers curled into the palm. The thumb must be clearly visible lying across the front of the curled fingers, on the outside of the fist. If the thumb is tucked inside the fist or hidden behind the fingers, if the thumb points up, or if any finger is extended, this does not match. The other hand is lowered.",
       "critical": true,
       "verification": "visual",
       "timerSeconds": 5
