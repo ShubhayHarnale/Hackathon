@@ -30,7 +30,7 @@ export function ReviewAlertButton({ sessionId, alertId }: { sessionId: string; a
         type="button"
         disabled={busy}
         onClick={() => void review()}
-        className="min-h-11 rounded-lg border-2 border-border px-4 font-bold disabled:opacity-60"
+        className="min-h-11 rounded-xl border-2 border-border bg-surface px-4 font-bold shadow-soft hover:border-foreground disabled:opacity-60"
       >
         {busy ? "Saving…" : "Review alert"}
       </button>

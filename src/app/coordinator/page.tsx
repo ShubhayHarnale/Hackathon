@@ -4,19 +4,27 @@ import { Suspense } from "react";
 import { AutoRefresh } from "@/components/coordinator/AutoRefresh";
 import { NewSessionForm } from "@/components/coordinator/NewSessionForm";
 import { SessionStatusBadge } from "@/components/coordinator/SessionStatusBadge";
-import { loadSessionList } from "@/dashboard/server";
+import { loadSessionList, type SessionSummary } from "@/dashboard/server";
 import { describeStop, formatOffset } from "@/dashboard/timeline";
 import { getRepository } from "@/persistence/server";
 
 export default function SessionsPage() {
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-8 py-10">
-      <h1 className="text-3xl font-bold">Sessions</h1>
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-10">
+      <div className="flex flex-col gap-2">
+        <p className="font-mono text-sm font-bold tracking-[0.14em] text-accent uppercase">
+          Study team
+        </p>
+        <h1 className="text-5xl font-semibold tracking-tight">Sessions</h1>
+        <p className="text-lg text-muted">
+          Every at-home procedure, with its flags and evidence. Running sessions update live.
+        </p>
+      </div>
       <Suspense fallback={<p className="text-muted">Loading…</p>}>
-        <NewSession />
+        <SessionOverview />
       </Suspense>
       <Suspense fallback={<p className="text-muted">Loading…</p>}>
-        <SessionTable />
+        <NewSession />
       </Suspense>
     </main>
   );
@@ -53,89 +61,145 @@ const time = (ms: number | null) =>
         minute: "2-digit",
       });
 
-async function SessionTable() {
+/** Sessions that may still change (auto-refresh while any exist). */
+const RUNNING = ["created", "practice", "active", "paused"];
+const IN_PROGRESS = ["practice", "active", "paused"];
+
+function Stat({
+  label,
+  value,
+  tone = "plain",
+}: {
+  label: string;
+  value: number;
+  tone?: "plain" | "danger" | "primary";
+}) {
+  const TONE = {
+    plain: "text-foreground",
+    primary: "text-primary",
+    danger: "text-danger",
+  } as const;
+  return (
+    <div className="rounded-3xl border-2 border-hairline bg-surface px-5 py-4 shadow-soft">
+      <p className="text-sm font-bold text-muted">{label}</p>
+      <p className={`font-display text-4xl font-semibold tabular-nums ${TONE[tone]}`}>{value}</p>
+    </div>
+  );
+}
+
+async function SessionOverview() {
   await connection();
   const rows = await loadSessionList();
-  const live = rows.some((r) =>
-    ["created", "practice", "active", "paused"].includes(r.session.status),
-  );
-  if (rows.length === 0) {
-    return (
-      <p className="text-lg text-muted">
-        No sessions yet. Create a link above and open it on a phone.
-      </p>
-    );
-  }
+  const live = rows.some((r) => RUNNING.includes(r.session.status));
+  const openFlags = rows.reduce((n, r) => n + (r.timeline?.openFlags ?? 0), 0);
+  const openCritical = rows.reduce((n, r) => n + (r.timeline?.openCritical ?? 0), 0);
   return (
     <>
       {/* Keep the list current while any session is running. */}
       {live && <AutoRefresh ms={4000} />}
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="border-b-2 border-border">
-              <th className="py-2 pr-4">Participant</th>
-              <th className="py-2 pr-4">Protocol</th>
-              <th className="py-2 pr-4">Status</th>
-              <th className="py-2 pr-4">Started</th>
-              <th className="py-2 pr-4">Duration</th>
-              <th className="py-2 pr-4">Open flags</th>
-              <th className="py-2">Outcome</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ session, participant, protocol, timeline }) => {
-              const duration =
-                session.startedAt !== null && session.endedAt !== null
-                  ? formatOffset(session.endedAt - session.startedAt)
-                  : session.startedAt !== null
-                    ? "running"
-                    : "–";
-              return (
-                <tr key={session.id} className="border-b border-border/40 align-top">
-                  <td className="py-3 pr-4">
-                    <Link
-                      href={`/coordinator/sessions/${session.id}`}
-                      className="font-bold text-primary underline"
-                    >
-                      {participant?.displayName ?? session.participantId}
-                    </Link>
-                    <div className="text-sm text-muted">{participant?.trialNumber}</div>
-                  </td>
-                  <td className="py-3 pr-4">
-                    {protocol?.protocol.title ?? session.protocolId}
-                    <div className="text-sm text-muted">
-                      v{session.protocolVersion} ·{" "}
-                      {session.mode === "live" ? "live camera" : session.mode}
-                    </div>
-                  </td>
-                  <td className="py-3 pr-4">
-                    <SessionStatusBadge status={session.status} />
-                  </td>
-                  <td className="py-3 pr-4">{time(session.startedAt)}</td>
-                  <td className="py-3 pr-4">{duration}</td>
-                  <td className="py-3 pr-4">
-                    {timeline && timeline.openFlags > 0 ? (
-                      <span
-                        className={`font-bold ${timeline.openCritical > 0 ? "text-danger" : "text-warning-fg"}`}
-                      >
-                        {timeline.openFlags}
-                        {timeline.openCritical > 0 && ` (${timeline.openCritical} critical)`}
-                      </span>
-                    ) : (
-                      <span className="text-muted">0</span>
-                    )}
-                  </td>
-                  <td className="py-3 text-sm">
-                    {describeStop(session.stopReason, protocol?.protocol ?? null) ??
-                      (session.status === "completed" ? "All steps confirmed" : "–")}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <section aria-label="Overview" className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <Stat label="Sessions" value={rows.length} />
+        <Stat
+          label="In progress"
+          value={rows.filter((r) => IN_PROGRESS.includes(r.session.status)).length}
+          tone="primary"
+        />
+        <Stat label="Open flags" value={openFlags} />
+        <Stat
+          label="Open critical"
+          value={openCritical}
+          tone={openCritical > 0 ? "danger" : "plain"}
+        />
+      </section>
+      <SessionTable rows={rows} />
     </>
+  );
+}
+
+function SessionTable({ rows }: { rows: readonly SessionSummary[] }) {
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-3xl border-2 border-dashed border-border bg-surface px-6 py-12 text-center">
+        <p className="font-display text-2xl font-semibold">No sessions yet</p>
+        <p className="mt-2 text-lg text-muted">
+          Create a link below and open it on a phone, or start one from the patient demo.
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="overflow-x-auto rounded-3xl border-2 border-hairline bg-surface shadow-soft">
+      <table className="w-full border-collapse text-left">
+        <thead>
+          <tr className="border-b-2 border-hairline text-sm text-muted">
+            <th className="px-5 py-3 font-bold">Participant</th>
+            <th className="px-4 py-3 font-bold">Protocol</th>
+            <th className="px-4 py-3 font-bold">Status</th>
+            <th className="px-4 py-3 font-bold">Started</th>
+            <th className="px-4 py-3 font-bold">Duration</th>
+            <th className="px-4 py-3 font-bold">Open flags</th>
+            <th className="px-5 py-3 font-bold">Outcome</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(({ session, participant, protocol, timeline }) => {
+            const duration =
+              session.startedAt !== null && session.endedAt !== null
+                ? formatOffset(session.endedAt - session.startedAt)
+                : session.startedAt !== null
+                  ? "running"
+                  : "–";
+            const outcome =
+              describeStop(session.stopReason, protocol?.protocol ?? null) ??
+              (session.status === "completed" ? "All steps confirmed" : "–");
+            return (
+              <tr
+                key={session.id}
+                className="border-b border-hairline align-top transition-colors last:border-0 hover:bg-background"
+              >
+                <td className="px-5 py-4">
+                  <Link
+                    href={`/coordinator/sessions/${session.id}`}
+                    className="font-bold whitespace-nowrap text-primary underline decoration-2 underline-offset-4 hover:decoration-primary/40"
+                  >
+                    {participant?.displayName ?? session.participantId}
+                  </Link>
+                  <div className="font-mono text-sm text-muted">{participant?.trialNumber}</div>
+                </td>
+                <td className="px-4 py-4">
+                  {protocol?.protocol.title ?? session.protocolId}
+                  <div className="text-sm text-muted">
+                    v{session.protocolVersion} ·{" "}
+                    {session.mode === "live" ? "live camera" : session.mode}
+                  </div>
+                </td>
+                <td className="px-4 py-4">
+                  <SessionStatusBadge status={session.status} />
+                </td>
+                <td className="px-4 py-4 text-sm whitespace-nowrap">{time(session.startedAt)}</td>
+                <td className="px-4 py-4 font-mono text-sm">{duration}</td>
+                <td className="px-4 py-4">
+                  {timeline && timeline.openFlags > 0 ? (
+                    <span
+                      className={`inline-flex rounded-full px-3 py-1 text-sm font-bold ${timeline.openCritical > 0 ? "bg-danger-soft text-danger" : "bg-warning-bg text-warning-fg"}`}
+                    >
+                      {timeline.openFlags}
+                      {timeline.openCritical > 0 && ` (${timeline.openCritical} critical)`}
+                    </span>
+                  ) : (
+                    <span className="text-muted">0</span>
+                  )}
+                </td>
+                <td
+                  className={`px-5 py-4 text-sm ${session.status === "stopped" ? "font-bold text-danger" : session.status === "completed" ? "text-success" : ""}`}
+                >
+                  {outcome}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }

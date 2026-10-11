@@ -44,13 +44,14 @@ export function NewSessionForm({
     router.refresh();
   }
 
-  const select = "rounded-lg border-2 border-border bg-background px-2 py-2";
+  const select =
+    "min-h-12 rounded-2xl border-2 border-border bg-background px-3 text-base font-normal focus:border-primary";
   return (
     <section
       aria-labelledby="new-session"
-      className="flex flex-col gap-3 rounded-xl border-2 border-border p-4"
+      className="flex flex-col gap-4 rounded-3xl border-2 border-hairline bg-surface p-6 shadow-soft"
     >
-      <h2 id="new-session" className="text-xl font-bold">
+      <h2 id="new-session" className="text-2xl font-semibold tracking-tight">
         New session link
       </h2>
       <div className="flex flex-wrap items-end gap-3">
@@ -106,7 +107,7 @@ export function NewSessionForm({
           type="button"
           onClick={create}
           disabled={busy || !participantId || !protocolId}
-          className="min-h-11 rounded-lg bg-primary px-5 text-lg font-bold text-primary-foreground disabled:opacity-50"
+          className="min-h-12 rounded-2xl bg-primary px-6 text-lg font-bold text-primary-foreground shadow-lift hover:brightness-110 disabled:opacity-50"
         >
           {busy ? "Creating…" : "Create link"}
         </button>
@@ -117,12 +118,14 @@ export function NewSessionForm({
         </p>
       )}
       {link && (
-        <div className="flex flex-wrap items-center gap-3 rounded-lg bg-surface p-3">
-          <code className="break-all text-sm">{link}</code>
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border-2 border-primary/30 bg-primary-soft p-4">
+          <code className="break-all rounded-lg bg-surface px-3 py-2 font-mono text-sm">
+            {link}
+          </code>
           <button
             type="button"
             onClick={() => void navigator.clipboard.writeText(link).then(() => setCopied(true))}
-            className="min-h-10 rounded-lg border-2 border-border px-3 font-bold"
+            className="min-h-10 rounded-xl border-2 border-border bg-surface px-4 font-bold hover:border-foreground"
           >
             {copied ? "Copied" : "Copy"}
           </button>

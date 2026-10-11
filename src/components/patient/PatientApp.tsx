@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { DemoBanner } from "@/components/DemoBanner";
+import { Wordmark } from "@/components/brand";
 import { practiceStepsFor } from "@/demo";
 import { currentStep } from "@/engine";
 import { createVoiceProvider } from "@/voice";
@@ -164,24 +165,33 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
   return (
     <div className="flex min-h-dvh flex-col">
       {(protocol.isDemo || scripted || replay) && <DemoBanner />}
-      {(scripted || replay) && (
-        <p className="bg-surface px-4 py-2 text-center text-xl font-bold">
-          {replay ? "Recorded video replay" : "Scripted demo — simulated checks"}
-        </p>
-      )}
+      <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pt-4">
+        <Wordmark />
+        {(scripted || replay) && (
+          <p className="rounded-full border-2 border-hairline bg-surface px-4 py-1.5 text-lg font-bold">
+            {replay ? "Recorded video replay" : "Scripted demo — simulated checks"}
+          </p>
+        )}
+      </header>
       {replayError && (
-        <p role="alert" className="px-4 py-2 text-xl text-danger">
+        <p
+          role="alert"
+          className="mx-4 mt-3 rounded-2xl border-2 border-danger/40 bg-danger-soft px-4 py-3 text-xl font-bold text-danger"
+        >
           {replayError}
         </p>
       )}
       {!online && (
-        <p role="alert" className="bg-danger px-4 py-3 text-xl font-bold text-danger-foreground">
+        <p
+          role="alert"
+          className="mx-4 mt-3 rounded-2xl bg-danger px-4 py-3 text-xl font-bold text-danger-foreground"
+        >
           {NOTES.offline}
         </p>
       )}
 
       <main
-        className={`mx-auto w-full flex-1 gap-5 px-4 py-5 ${showCamera ? "grid content-start md:max-w-6xl md:grid-cols-2 md:items-start lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-8" : "flex max-w-xl flex-col"}`}
+        className={`mx-auto w-full flex-1 gap-6 px-4 py-6 ${showCamera ? "grid content-start md:max-w-6xl md:grid-cols-2 md:items-start lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-8" : "flex max-w-xl flex-col"}`}
       >
         <CameraView
           attachVideo={attachVideo}
@@ -215,7 +225,7 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
           />
         )}
         {screen.kind === "permissions" && replay && (
-          <section className="flex flex-col gap-5">
+          <section className="stagger flex flex-col gap-5">
             <ScreenHeading>Choose a recorded procedure</ScreenHeading>
             <p className="text-xl">
               Use a synthetic prop demonstration, starting at the first procedure step. The video
@@ -231,7 +241,7 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
               <input
                 type="file"
                 accept="video/*"
-                className="min-h-16 w-full min-w-0 rounded-xl border-2 border-border p-3"
+                className="min-h-16 w-full min-w-0 rounded-2xl border-2 border-dashed border-border bg-surface p-4 text-lg file:mr-4 file:rounded-xl file:border-0 file:bg-primary file:px-4 file:py-2 file:font-bold file:text-primary-foreground"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (!file) return;
@@ -320,7 +330,7 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
       {screen.kind !== "stopped" && screen.kind !== "camera_denied" && (
         <nav
           aria-label="Help and controls"
-          className="sticky bottom-0 border-t-2 border-border bg-background px-4 py-3"
+          className="sticky bottom-0 border-t border-hairline bg-background/85 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md"
         >
           <div className="mx-auto flex w-full max-w-xl gap-3">
             {canPause(engine) && (
@@ -358,7 +368,16 @@ function CameraView({
 }) {
   // The <video> stays mounted on every screen so the stream survives screen changes.
   return (
-    <div className={visible ? "w-full min-w-0" : "hidden"}>
+    <div className={visible ? "relative w-full min-w-0 motion-safe:animate-rise" : "hidden"}>
+      {live && (
+        <span className="absolute top-3 left-3 z-10 inline-flex items-center gap-2 rounded-full bg-foreground px-3 py-1 text-base font-bold text-background">
+          <span
+            aria-hidden="true"
+            className="size-2.5 rounded-full bg-danger motion-safe:animate-pulse"
+          />
+          {replay ? "Replay" : "Live"}
+        </span>
+      )}
       <video
         ref={attachVideo}
         playsInline
@@ -366,10 +385,10 @@ function CameraView({
         autoPlay={!replay}
         onEnded={onEnded}
         aria-label={replay ? "Recorded procedure preview" : "Your camera"}
-        className={`aspect-[4/3] max-h-[65dvh] w-full ${replay ? "" : "-scale-x-100"} rounded-2xl bg-surface object-contain ${live ? "" : "hidden"}`}
+        className={`aspect-[4/3] max-h-[65dvh] w-full ${replay ? "" : "-scale-x-100"} rounded-[1.75rem] border-2 border-hairline bg-foreground object-contain shadow-lift ${live ? "" : "hidden"}`}
       />
       {!live && visible && (
-        <div className="flex min-h-20 items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface px-4 py-2 text-center text-xl text-muted">
+        <div className="flex items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-surface px-4 py-2 text-center text-lg text-muted">
           {NOTES.scriptedCamera}
         </div>
       )}

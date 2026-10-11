@@ -8,7 +8,7 @@ import type { Protocol } from "@/protocol/schema";
 export default function VisionLabPage() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-8 py-10">
-      <h1 className="text-3xl font-bold">Vision lab</h1>
+      <h1 className="text-5xl font-semibold tracking-tight">Vision lab</h1>
       <p className="text-lg text-muted">
         Runs the full pipeline (camera or video file → vision → step engine) so you can test a
         protocol and tune the vision prompt. Use the scripted scenarios to see each safety path

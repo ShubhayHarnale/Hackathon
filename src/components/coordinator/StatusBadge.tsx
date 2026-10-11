@@ -4,12 +4,14 @@ export function StatusBadge({ status }: { status: ProtocolStatus }) {
   const published = status === "published";
   return (
     <span
-      className={`inline-block rounded-full border-2 px-3 py-0.5 text-sm font-bold ${
-        published
-          ? "border-success text-success"
-          : "border-warning-fg bg-warning-bg text-warning-fg"
+      className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm font-bold ${
+        published ? "bg-success-soft text-success" : "bg-warning-bg text-warning-fg"
       }`}
     >
+      <span
+        aria-hidden="true"
+        className={`size-2 rounded-full ${published ? "bg-success" : "bg-warning-fg"}`}
+      />
       {published ? "Published" : "Draft"}
     </span>
   );

@@ -291,6 +291,28 @@ microphone → VoiceProvider (transcript) → parseCommand → VoiceCoach → en
   Postgres checks in `scripts/verify-phase7.sql`. Browser tests use synthetic video and mock
   providers; they do not measure Gemini recognition accuracy.
 
+## Design system (UI/UX)
+"Calm clinical, editorial": trustworthy for study teams, calm and unmistakable for older adults at home.
+
+- **Palette** (`src/app/globals.css`): warm paper background, deep ink text, a deep teal accent.
+  - Red is reserved for **stop**, amber for warnings, sage for success.
+  - Every text/background pair meets WCAG AA in light and dark mode (most meet AAA).
+  - `--border` meets 3:1 for control outlines; `--hairline` is decorative only.
+- **Type:** Fraunces (headings) with the Atkinson Hyperlegible family for body text (designed for low-vision readers) and timestamps (its mono).
+- **Patient screens:**
+  - One step per screen, with text of at least 20px and controls at least 64px tall.
+  - A segmented step progress bar and the coach's spoken line shown as a "speaker" card.
+  - A circular countdown ring for timed holds.
+  - A full red stop panel with the nurse's number kept on one line.
+  - A frosted bottom bar that always shows Pause and Call my nurse.
+- **Study team:**
+  - Sticky app bar with the active page highlighted.
+  - Sessions: stat tiles plus a card table with status pills.
+  - Session record: a vertical timeline rail with evidence thumbnails, with flags and alerts beside it.
+  - Protocols: cards with a "critical step" strip.
+- **Motion:** entrances move content into place but never hide it, so content is never invisible if animations are paused or skipped, and reduced-motion users get none. The Witness mark (`src/components/brand.tsx`) is an eye whose pupil is a check: "seen, and confirmed".
+- **Copy and labels are unchanged by the redesign.** The end-to-end tests find elements by visible text and role.
+
 ## Build phases
 
 0. Scaffold, env config, folder structure, interfaces for every module

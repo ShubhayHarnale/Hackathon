@@ -357,7 +357,7 @@ export function VisionLab({
       </section>
 
       <section className="flex flex-col gap-4" aria-label="Live state" aria-live="polite">
-        <div className="rounded-xl border-2 border-border p-4">
+        <div className="rounded-3xl border-2 border-hairline bg-surface p-5 shadow-soft">
           <p className="text-sm uppercase tracking-wide text-muted">Engine</p>
           <p className="text-2xl font-bold">
             {state?.status ?? "not started"}
@@ -404,7 +404,7 @@ export function VisionLab({
         </div>
 
         {voiceOn && (
-          <div className="rounded-xl border-2 border-border p-4">
+          <div className="rounded-3xl border-2 border-hairline bg-surface p-5 shadow-soft">
             <p className="mb-2 text-sm uppercase tracking-wide text-muted">
               Voice (latest first)
               {voiceCaps && (
@@ -429,7 +429,7 @@ export function VisionLab({
           </div>
         )}
 
-        <div className="rounded-xl border-2 border-border p-4">
+        <div className="rounded-3xl border-2 border-hairline bg-surface p-5 shadow-soft">
           <p className="mb-2 text-sm uppercase tracking-wide text-muted">Frames (latest first)</p>
           <ul className="max-h-48 overflow-auto font-mono text-sm">
             {frames.map((f) => (
@@ -450,7 +450,7 @@ export function VisionLab({
           </ul>
         </div>
 
-        <div className="rounded-xl border-2 border-border p-4">
+        <div className="rounded-3xl border-2 border-hairline bg-surface p-5 shadow-soft">
           <p className="mb-2 text-sm uppercase tracking-wide text-muted">Events (latest first)</p>
           <ul className="max-h-72 overflow-auto font-mono text-sm">
             {events.map((e) => (

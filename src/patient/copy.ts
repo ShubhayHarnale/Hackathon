@@ -33,6 +33,13 @@ export const LABELS = {
   tryAgain: "Try again",
 } as const;
 
+/** What to expect, shown on the welcome screen. */
+export const WELCOME_POINTS = [
+  { title: "One step at a time", body: "Each step appears on its own, in large text." },
+  { title: "I'll talk you through it", body: "Listen, or read along. Tap Repeat any time." },
+  { title: "Help is one tap away", body: "Pause or call your study nurse whenever you need." },
+] as const;
+
 export const HEADINGS = {
   welcome: "Welcome",
   permissions: "Camera and microphone",

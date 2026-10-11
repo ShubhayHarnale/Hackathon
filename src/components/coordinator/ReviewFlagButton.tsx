@@ -23,7 +23,7 @@ export function ReviewFlagButton({ sessionId, eventSeq }: { sessionId: string; e
       type="button"
       onClick={review}
       disabled={state === "busy"}
-      className="min-h-10 whitespace-nowrap rounded-lg border-2 border-border px-3 font-bold disabled:opacity-50"
+      className="min-h-11 whitespace-nowrap rounded-xl border-2 border-border bg-surface px-4 font-bold shadow-soft hover:border-foreground disabled:opacity-50"
     >
       {state === "busy" ? "Saving…" : state === "error" ? "Retry" : "Mark reviewed"}
     </button>

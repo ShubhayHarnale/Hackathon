@@ -1,38 +1,55 @@
 @import "tailwindcss";
 
 /*
- * High-contrast tokens. Text/background pairs meet WCAG AA (most meet AAA).
- * Patient screens use these with >= 20px body text and >= 56px tap targets.
+ * Witness design system: "calm clinical, editorial".
+ * Warm paper, deep ink, a deep teal accent. Red is reserved for "stop", amber for
+ * warnings, sage for success. Every text/background pair below meets WCAG AA in both
+ * themes (most meet AAA); `--border` meets 3:1 for control outlines, `--hairline` is
+ * decorative only. Patient screens use >= 20px text and >= 64px main controls.
  */
 :root {
-  --background: #ffffff;
-  --foreground: #111111;
-  --muted: #4a4a4a;
-  --surface: #f2f2f2;
-  --border: #6b6b6b;
-  --primary: #0b4fd6;
+  --background: #f5f1e8;
+  --surface: #fffcf6;
+  --surface-2: #ece5d8;
+  --foreground: #15191d;
+  --muted: #4e555c;
+  --border: #8a8274;
+  --hairline: #ddd5c6;
+  --primary: #0c5a57;
   --primary-foreground: #ffffff;
-  --danger: #b00020;
+  --primary-soft: #dcebe7;
+  --danger: #a3241a;
   --danger-foreground: #ffffff;
-  --success: #116b2f;
-  --warning-bg: #fff3c4;
-  --warning-fg: #3d2e00;
+  --danger-soft: #f7e1dc;
+  --success: #2a6534;
+  --success-soft: #e0eedd;
+  --warning-bg: #fbedc4;
+  --warning-fg: #553d00;
+  --accent: #9a5b12;
+  --shadow-color: 40 30 15;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b0b0c;
-    --foreground: #f5f5f5;
-    --muted: #c4c4c4;
-    --surface: #1c1c1f;
-    --border: #a0a0a0;
-    --primary: #8fb4ff;
-    --primary-foreground: #0b0b0c;
-    --danger: #ff8a80;
-    --danger-foreground: #0b0b0c;
-    --success: #7ee2a0;
-    --warning-bg: #3d2e00;
-    --warning-fg: #fff3c4;
+    --background: #111315;
+    --surface: #1a1d20;
+    --surface-2: #24282c;
+    --foreground: #f1ede5;
+    --muted: #b4afa5;
+    --border: #7a7f84;
+    --hairline: #30353a;
+    --primary: #74c7bc;
+    --primary-foreground: #0a1413;
+    --primary-soft: #173431;
+    --danger: #ff8e7e;
+    --danger-foreground: #1a0705;
+    --danger-soft: #3a1a16;
+    --success: #8fd49c;
+    --success-soft: #1b3320;
+    --warning-bg: #3a2d0b;
+    --warning-fg: #f7df9c;
+    --accent: #e0a55a;
+    --shadow-color: 0 0 0;
   }
 }
 
@@ -41,26 +58,108 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
   --color-border: var(--border);
+  --color-hairline: var(--hairline);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
   --color-danger: var(--danger);
   --color-danger-foreground: var(--danger-foreground);
+  --color-danger-soft: var(--danger-soft);
   --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
   --color-warning-bg: var(--warning-bg);
   --color-warning-fg: var(--warning-fg);
+  --color-accent: var(--accent);
   --font-sans: var(--font-atkinson), system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-mono: var(--font-atkinson-mono), ui-monospace, monospace;
+  --shadow-soft:
+    0 1px 2px rgb(var(--shadow-color) / 0.06), 0 8px 24px -12px rgb(var(--shadow-color) / 0.18);
+  --shadow-lift:
+    0 2px 4px rgb(var(--shadow-color) / 0.08), 0 18px 40px -18px rgb(var(--shadow-color) / 0.35);
+  --animate-rise: rise 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-breathe: breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes rise {
+  /* Movement only: content is never hidden, even if animations are paused or skipped. */
+  from {
+    transform: translateY(12px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  /* A faint paper texture and a soft wash of the accent, so pages feel made, not blank. */
+  background-image:
+    radial-gradient(
+      1200px 600px at 10% -10%,
+      color-mix(in oklab, var(--primary) 9%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      900px 500px at 110% 0%,
+      color-mix(in oklab, var(--accent) 7%, transparent),
+      transparent 70%
+    );
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans);
+  font-feature-settings: "ss01";
+}
+
+h1,
+h2,
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: var(--primary-soft);
+  color: var(--foreground);
 }
 
 :focus-visible {
   outline: 3px solid var(--primary);
   outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* Staggered entrance for screen content: add `stagger` to a container. */
+.stagger > * {
+  animation: rise 520ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 60ms;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 120ms;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 180ms;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 240ms;
+}
+.stagger > *:nth-child(n + 6) {
+  animation-delay: 300ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -68,6 +167,7 @@ body {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     transition-duration: 0.01ms !important;
   }
 }

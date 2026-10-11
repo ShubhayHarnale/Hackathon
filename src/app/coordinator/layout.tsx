@@ -1,27 +1,28 @@
 import Link from "next/link";
-
-const NAV = [
-  { href: "/coordinator", label: "Sessions" },
-  { href: "/coordinator/protocols", label: "Protocols" },
-  { href: "/coordinator/vision-lab", label: "Vision lab" },
-] as const;
+import { Wordmark } from "@/components/brand";
+import { DashboardNav } from "@/components/coordinator/DashboardNav";
 
 export default function CoordinatorLayout({ children }: LayoutProps<"/coordinator">) {
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b-2 border-border">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-6 px-8 py-4">
-          <Link href="/coordinator" className="text-xl font-bold">
-            Witness <span className="font-normal text-muted">· study team</span>
+      <header className="sticky top-0 z-20 border-b border-hairline bg-background/85 backdrop-blur-md">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3">
+          <Link href="/coordinator" aria-label="Witness study team dashboard">
+            <Wordmark suffix="Study team" />
           </Link>
-          <nav aria-label="Dashboard" className="flex gap-4 text-lg">
-            {NAV.map((item) => (
-              <Link key={item.href} href={item.href} className="underline-offset-4 hover:underline">
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-          <p className="ml-auto text-sm text-muted">Synthetic data only</p>
+          <DashboardNav />
+          <div className="ml-auto flex items-center gap-3">
+            <span className="hidden items-center gap-2 rounded-full bg-warning-bg px-3 py-1 text-sm font-bold text-warning-fg md:inline-flex">
+              <span aria-hidden="true" className="size-2 rounded-full bg-warning-fg" />
+              Synthetic data only
+            </span>
+            <Link
+              href="/demo"
+              className="rounded-full border-2 border-border bg-surface px-4 py-1.5 text-sm font-bold hover:border-foreground"
+            >
+              Patient demo ↗
+            </Link>
+          </div>
         </div>
       </header>
       {children}

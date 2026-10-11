@@ -29,7 +29,7 @@ async function ProtocolDetail({ id }: { id: string }) {
   return (
     <>
       <div className="flex flex-wrap items-center gap-4">
-        <h1 className="text-3xl font-bold">{record.protocol.title}</h1>
+        <h1 className="text-5xl font-semibold tracking-tight">{record.protocol.title}</h1>
         <StatusBadge status={record.status} />
         <span className="text-muted">v{record.version}</span>
       </div>
