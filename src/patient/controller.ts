@@ -18,6 +18,7 @@ import {
   type CapturedFrame,
   type ScenarioName,
   type VisionProvider,
+  type VisionFailureKind,
 } from "@/vision";
 import type { VoiceCommand } from "@/voice/types";
 import type { EvidenceUploader } from "./evidence";
@@ -55,6 +56,7 @@ export interface PatientSnapshot {
   readonly engine: EngineState;
   /** The latest frame verdict (the practice screen shows whether hands are visible). */
   readonly lastFrame: FrameResult | null;
+  readonly visionError: VisionFailureKind | null;
   /** The camera problem to show, if any. Cleared when the step moves on or after a while. */
   readonly correction: Correction | null;
 }
@@ -95,7 +97,12 @@ export class PatientController {
         ? { config: { maxStepSeconds: 15, maxUnmatchedFrames: 1_000 } }
         : {}),
     });
-    this.snapshot = { engine: this.runner.state, lastFrame: null, correction: null };
+    this.snapshot = {
+      engine: this.runner.state,
+      lastFrame: null,
+      visionError: null,
+      correction: null,
+    };
 
     const provider =
       opts.provider ??
@@ -111,7 +118,8 @@ export class PatientController {
       dispatch: (input) => this.dispatch(input),
       now: this.now,
       ...(opts.visionIntervalMs ? { intervalMs: opts.visionIntervalMs } : {}),
-      onResult: ({ seq, result }) => {
+      onResult: ({ seq, result, error }) => {
+        this.update({ visionError: error ?? null });
         if (!result) return;
         this.results.set(seq, result);
         // Keep only as many results as the loop keeps frames.
@@ -144,6 +152,12 @@ export class PatientController {
 
   /** Feeds an input to the engine. Every input path (vision, tick, buttons, voice) uses this. */
   dispatch(input: EngineInput): readonly EngineEvent[] {
+    if (
+      input.type === "resume" &&
+      this.runner.state.pause?.reason === "vision_unavailable" &&
+      (this.runner.state.vision.degraded || this.snapshot.visionError !== null)
+    )
+      return [];
     const events = this.runner.dispatch(input);
     if (this.runner.state !== this.snapshot.engine) this.update({ engine: this.runner.state });
     return events;

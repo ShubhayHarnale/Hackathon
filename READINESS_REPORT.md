@@ -2,7 +2,7 @@
 
 ## Verified locally
 
-- **278 unit/property/API tests**, 29 test files; typecheck, lint and production build passed.
+- **288 unit/property/API tests**, 30 test files; typecheck, lint and production build passed.
 - **Seven recorded Chrome browser flows** passed: launcher keyboard/accessibility checks,
   critical-stop consent cases (two participants), no-response and reload guard, synthetic
   video replay/evidence, phone-sized happy run with Pause/Repeat/Continue, and vision outage
@@ -35,8 +35,7 @@
   completion/critical-stop records. Recognition in these browser tests is simulated.
 - Hands-only practice is authorized against the saved session's protocol; unrelated
   pen practice is rejected. Holds cannot complete from elapsed time alone.
-- Typecheck, lint and production build passed. Physical Gemini gesture recognition
-  remains unverified until a person runs the camera demo. Notifications remain mocked.
+- Typecheck, lint and production build passed. Recognition accuracy still needs labeled camera recordings. Notifications remain mocked.
 
 - Netlify production deploy `6acaeafbdb28a6194abf4eb1` is live. The hosted browser
   defaults to Hands-only camera demo, launches the live patient flow, and shows camera
@@ -47,6 +46,28 @@
   This confirms the new contexts reach Gemini; it does not validate real hand recognition.
 - Ignored `eval/readiness-videos/netlify-hands-demo.png` captures the deployed launcher;
   `.netlify/hands-demo-hosted-report.json` holds the synthetic hosted check results.
+
+## Larger camera and checking recovery
+
+- The preview uses the full camera image without cropping, is larger during procedure
+  steps, and sits beside instructions on laptops. Ready and paused screens keep it visible.
+- Freshness follows presented-frame callbacks, then non-dropped frame counts or media time.
+  Browser-suspended live playback is retried; frozen frames cannot confirm an active hold.
+  A paused replay may probe checking recovery with its existing frame, without advancing
+  the engine or finishing a hold.
+- Missing camera frames are distinguished from network, timeout, busy-provider and provider
+  failures. The pause screen explains that this is not a detected procedure mistake.
+  Both buttons and voice require a successful check before Continue can resume; the coach
+  announces recovery. Manual pauses do not send unnecessary frame checks.
+- All 11 Chrome flows passed with simulated recognition, including a fake-camera failure,
+  visible preview, disabled Continue, verified recovery, desktop size and mobile overflow.
+  The 288 unit/API tests, lint and production build passed.
+- The most recent actual live hands-only session completed after repeated
+  `vision_unavailable` pauses. Twelve consecutive hosted synthetic negative-control checks
+  returned HTTP 200, each in approximately 0.9–1.8 seconds. Historical failures lacked
+  per-frame source diagnostics, so their exact browser/provider cause is not proven.
+  The new messages expose that distinction for retesting; no recognition-accuracy claim
+  is made from the saved completion record alone.
 
 ## Prepared artifacts
 

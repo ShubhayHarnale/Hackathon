@@ -22,6 +22,9 @@ export function frameContext(
 ): FrameContext | null {
   const run = state.run;
   if (!run || isTerminal(state)) return null;
+  // Manual pauses freeze replay/capture and need no API calls. System pauses keep
+  // checking so recovery can be verified before the patient explicitly continues.
+  if (state.status === "paused" && state.pause?.reason !== "vision_unavailable") return null;
   const pick = (i: number) => {
     const id = run.steps[i]?.id;
     const step = id ? stepsById.get(id) : undefined;

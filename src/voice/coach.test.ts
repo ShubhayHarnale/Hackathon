@@ -290,6 +290,15 @@ describe("VoiceCoach on the mock autoinjector protocol", () => {
     expect(last()).toMatchObject({ text: SCRIPTS.stopEnded, priority: "urgent" });
   });
 
+  it("announces checking recovery while keeping the procedure paused until explicit Continue", async () => {
+    sim.start();
+    await voice.finishAll();
+    for (let i = 0; i < 5; i++) sim.error();
+    sim.frame(null);
+    expect(sim.status).toBe("paused");
+    expect(last()?.text).toBe(SCRIPTS.visionRecovered);
+  });
+
   it("completes the whole procedure by voice and only ever says reviewed text", async () => {
     sim.startPractice();
     for (const s of PRACTICE_STEPS) {

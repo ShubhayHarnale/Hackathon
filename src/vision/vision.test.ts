@@ -159,6 +159,28 @@ describe("VisionLoop", () => {
     expect(runner.state.pause?.reason).toBe("vision_unavailable");
   });
 
+  it("reports missing camera frames separately from provider failures", async () => {
+    const runner = new EngineRunner({ steps: AUTOINJECTOR.steps });
+    runner.dispatch({ type: "start", at: 0 });
+    const check = vi.fn();
+    const onResult = vi.fn();
+    const loop = new VisionLoop({
+      provider: { name: "test", check },
+      sessionId: "s",
+      capture: async () => null,
+      getContext: () => frameContext(runner.state, STEPS_BY_ID),
+      dispatch: (input) => {
+        runner.dispatch(input);
+      },
+      onResult,
+      now: () => 1000,
+    });
+    for (let n = 0; n < 5; n++) await loop.tick();
+    expect(check).not.toHaveBeenCalled();
+    expect(onResult).toHaveBeenLastCalledWith({ seq: 5, latencyMs: 0, error: "camera" });
+    expect(runner.state.pause?.reason).toBe("vision_unavailable");
+  });
+
   it("keeps captured frames so the confirming frame can be uploaded as evidence", async () => {
     const { loop, runner } = setup(new ScriptedVisionProvider("happy", AUTOINJECTOR.steps));
     const events: EngineEvent[] = [];
@@ -344,6 +366,16 @@ describe("HTTP vision client", () => {
     ) as unknown as typeof fetch;
     await expect(createHttpVisionProvider({ fetchImpl }).check(REQUEST)).rejects.toMatchObject({
       kind: "network",
+    });
+  });
+
+  it("preserves typed server failures without exposing arbitrary response text", async () => {
+    const client = createHttpVisionProvider({ fetchImpl: respond(502, { error: "network" }) });
+    await expect(client.check(REQUEST)).rejects.toMatchObject({ kind: "network" });
+    const unknown = createHttpVisionProvider({ fetchImpl: respond(502, { error: "unexpected" }) });
+    await expect(unknown.check(REQUEST)).rejects.toMatchObject({
+      kind: "provider",
+      message: "HTTP 502",
     });
   });
 });

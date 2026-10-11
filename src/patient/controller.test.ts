@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEMO_PROTOCOLS, PRACTICE_STEPS } from "@/demo";
 import type { EngineEvent } from "@/engine";
-import type { ScenarioName } from "@/vision";
+import { VisionError, type ScenarioName, type VisionProvider } from "@/vision";
 import { PatientController } from "./controller";
 import { EvidenceUploader } from "./evidence";
 import { EventOutbox } from "./outbox";
@@ -9,7 +9,7 @@ import type { EvidenceBody } from "./schema";
 
 const protocol = DEMO_PROTOCOLS.find((p) => p.id === "mock-autoinjector")!;
 
-function setup(scenario: ScenarioName = "happy") {
+function setup(scenario: ScenarioName = "happy", provider?: VisionProvider) {
   const sent: EngineEvent[] = [];
   const evidence: EvidenceBody[] = [];
   const outbox = new EventOutbox({ send: async (events) => (sent.push(...events), "ok") });
@@ -21,6 +21,7 @@ function setup(scenario: ScenarioName = "happy") {
     steps: protocol.steps,
     practiceSteps: PRACTICE_STEPS,
     vision: { kind: "scripted", scenario },
+    ...(provider ? { provider } : {}),
     capture: async () => ({ base64: "/9j/frame", width: 1, height: 1 }),
     outbox,
     evidence: uploader,
@@ -44,6 +45,33 @@ async function runProcedure(controller: PatientController, seconds: number) {
 describe("PatientController", () => {
   beforeEach(() => vi.useFakeTimers());
   afterEach(() => vi.useRealTimers());
+
+  it("requires a successful check before resuming an outage, and distinguishes a checking failure from a mistake", async () => {
+    let recovered = false;
+    const { controller, sent } = setup("happy", {
+      name: "intermittent",
+      check: async () => {
+        if (!recovered) throw new VisionError("network");
+        return { observedStepId: null, confidence: 1 };
+      },
+    });
+    controller.start();
+    await vi.advanceTimersByTimeAsync(5000);
+    expect(controller.runner.state.pause?.reason).toBe("vision_unavailable");
+    expect(controller.getSnapshot().visionError).toBe("network");
+    controller.command("continue", "button");
+    controller.command("continue", "voice");
+    controller.dispatch({ type: "resume", source: "voice", at: Date.now() });
+    expect(controller.runner.state.status).toBe("paused");
+    expect(sent.filter((e) => e.type === "resumed")).toHaveLength(0);
+    recovered = true;
+    await vi.advanceTimersByTimeAsync(1000);
+    expect(controller.getSnapshot().visionError).toBeNull();
+    expect(controller.runner.state.status).toBe("paused");
+    controller.command("continue", "button");
+    expect(controller.runner.state.status).toBe("active");
+    controller.dispose();
+  });
 
   it("turns the demo no-response timeout into a needs-human stop", async () => {
     const { controller, sent } = setup("no-response");

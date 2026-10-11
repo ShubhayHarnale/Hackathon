@@ -1,5 +1,18 @@
 import type { StopReason } from "@/engine";
 import { NEEDS_HUMAN_REASON, SCRIPTS } from "@/voice/scripts";
+import type { VisionFailureKind } from "@/vision";
+
+export const VISION_FAILURE_NOTES: Record<VisionFailureKind, string> = {
+  camera:
+    "The camera isn't providing new frames. Keep this page open and the camera running. You can retry the camera below.",
+  timeout: "Camera checks are taking too long. Keep this page open while we retry.",
+  network:
+    "The connection to camera checking was interrupted. Check your internet connection while we retry.",
+  rate_limited:
+    "The camera checking service is temporarily busy. We're waiting for it to become available.",
+  provider:
+    "The camera checking service couldn't complete the checks. We're retrying the connection.",
+};
 
 /**
  * On-screen labels and the few sentences the patient screens need that aren't spoken

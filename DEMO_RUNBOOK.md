@@ -130,6 +130,15 @@ the automated coverage and remaining physical-device checks.
 
 ## Troubleshooting
 
+- **Paused while checking:** this is a camera/checking failure, not a detected procedure
+  mistake. The preview stays visible, and the message distinguishes missing fresh camera
+  frames from a network failure, slow check or busy provider. Keep the page open. For
+  missing camera frames, use Retry camera. The voice announces recovery, and Continue
+  becomes available after a successful check; recovery never advances a step by itself.
+- **Camera appears frozen:** keep the preview visible. Fresh presented frames are tracked
+  independently of playback time on supported browsers, with frame-counter/time fallbacks.
+  Repeated frozen frames cannot complete an active hold.
+
 - **No session or invalid link after restarting:** memory data was lost. Launch a new demo
   or use Supabase. Never restart a real procedure just to repair a link.
 - **Already started:** return to the original patient tab; otherwise request a new study-team

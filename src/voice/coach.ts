@@ -299,7 +299,15 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
       case "run_started":
       case "step_missed":
       case "flagged":
+        return;
       case "vision_recovered":
+        if (s.status === "paused" && s.pause?.reason === "vision_unavailable") {
+          queue.interrupt();
+          say(
+            { key: "vision-recovered", text: SCRIPTS.visionRecovered, priority: "prompt" },
+            FORCE,
+          );
+        }
         return;
     }
   }

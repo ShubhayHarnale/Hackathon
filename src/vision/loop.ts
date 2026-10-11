@@ -1,14 +1,16 @@
-import type { EngineInput, FrameResult } from "@/engine";
+import type { EngineInput, FrameResult, FrameErrorKind } from "@/engine";
 import type { CapturedFrame } from "./capture";
 import { FrameBuffer } from "./capture";
 import type { FrameContext } from "./context";
 import { toFrameErrorKind } from "./errors";
 import type { VisionProvider } from "./types";
 
+export type VisionFailureKind = FrameErrorKind | "camera";
+
 export interface VisionLoopDeps {
   readonly provider: VisionProvider;
   readonly sessionId: string;
-  /** Grabs a frame from the video. Null = no frame available (skipped, not an error). */
+  /** Grabs a fresh frame. Null is a camera failure, distinct from a failed API check. */
   readonly capture: () => Promise<Omit<CapturedFrame, "seq" | "capturedAt"> | null>;
   /** What to ask about now. Null = nothing to check (idle / finished). */
   readonly getContext: () => FrameContext | null;
@@ -21,7 +23,7 @@ export interface VisionLoopDeps {
     seq: number;
     latencyMs: number;
     result?: FrameResult;
-    error?: string;
+    error?: VisionFailureKind;
   }) => void;
 }
 
@@ -67,6 +69,7 @@ export class VisionLoop {
       const capturedAt = this.now();
       const image = await this.deps.capture();
       if (!image) {
+        this.deps.onResult?.({ seq: this.seq + 1, latencyMs: 0, error: "camera" });
         this.deps.dispatch({
           type: "frame_error",
           at: this.now(),
@@ -97,6 +100,7 @@ export class VisionLoop {
       }
       return true;
     } catch {
+      this.deps.onResult?.({ seq: this.seq + 1, latencyMs: 0, error: "camera" });
       this.deps.dispatch({
         type: "frame_error",
         at: this.now(),

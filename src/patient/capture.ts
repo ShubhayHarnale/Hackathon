@@ -14,16 +14,36 @@ export class PatientMedia {
   private video: HTMLVideoElement | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private lastVideoTime = -1;
+  private lastDecodedFrames = -1;
+  private presentedFrames = 0;
+  private lastPresentedFrames = -1;
+  private frameCallback: number | null = null;
   private replayUrl: string | null = null;
   private stream: MediaStream | null = null;
   /** What the placeholder frame is labelled with (the current step id). */
   label: () => string = () => "";
+  /** A frozen replay frame may probe recovery only while the engine is system-paused. */
+  checkPausedReplay: () => boolean = () => false;
 
   constructor(private readonly scripted: boolean) {}
 
   setVideo = (el: HTMLVideoElement | null): void => {
+    if (this.video && this.frameCallback !== null) {
+      this.video.cancelVideoFrameCallback?.(this.frameCallback);
+    }
+    this.frameCallback = null;
     this.video = el;
+    this.presentedFrames = 0;
+    this.lastPresentedFrames = -1;
     if (el && this.stream && el.srcObject !== this.stream) el.srcObject = this.stream;
+    if (el?.requestVideoFrameCallback) {
+      const onFrame: VideoFrameRequestCallback = (_time, metadata) => {
+        if (this.video !== el) return;
+        this.presentedFrames = metadata.presentedFrames;
+        this.frameCallback = el.requestVideoFrameCallback(onFrame);
+      };
+      this.frameCallback = el.requestVideoFrameCallback(onFrame);
+    }
   };
 
   setCanvas = (el: HTMLCanvasElement | null): void => {
@@ -32,7 +52,13 @@ export class PatientMedia {
 
   /** Shows a new camera stream (stopping any previous one). */
   async setStream(stream: MediaStream | null): Promise<void> {
-    if (this.stream !== stream) this.stopStream();
+    if (this.stream !== stream) {
+      this.stopStream();
+      this.lastVideoTime = -1;
+      this.lastDecodedFrames = -1;
+      this.presentedFrames = 0;
+      this.lastPresentedFrames = -1;
+    }
     this.stream = stream;
     if (this.video && stream) {
       this.video.srcObject = stream;
@@ -50,6 +76,9 @@ export class PatientMedia {
     this.clearReplay();
     if (!this.video) throw new Error("Video preview unavailable");
     this.lastVideoTime = -1;
+    this.lastDecodedFrames = -1;
+    this.presentedFrames = 0;
+    this.lastPresentedFrames = -1;
     this.replayUrl = URL.createObjectURL(file);
     this.video.srcObject = null;
     this.video.src = this.replayUrl;
@@ -73,6 +102,11 @@ export class PatientMedia {
   capture = async (): Promise<Frame | null> => {
     const { video, canvas } = this;
     if (!canvas) return null;
+    // Some browsers suspend muted camera playback when a preview is hidden. Recover
+    // live playback before checking freshness; a paused replay must stay paused.
+    if (this.stream && video?.paused && !video.ended) {
+      await video.play().catch(() => undefined);
+    }
     if (
       (this.stream || this.replayUrl) &&
       video &&
@@ -80,7 +114,21 @@ export class PatientMedia {
       video.readyState >= 2 &&
       video.videoWidth > 0
     ) {
-      if (video.currentTime === this.lastVideoTime) return null;
+      // Observe presented frames directly on modern browsers; fall back to decoded
+      // frames or media time. Live streams can keep a constant currentTime.
+      const quality = video.getVideoPlaybackQuality?.();
+      const decoded = Math.max(
+        0,
+        (quality?.totalVideoFrames ?? 0) - (quality?.droppedVideoFrames ?? 0),
+      );
+      const healthProbe = this.replayUrl && this.checkPausedReplay();
+      if (this.presentedFrames > 0) {
+        if (this.presentedFrames === this.lastPresentedFrames && !healthProbe) return null;
+        this.lastPresentedFrames = this.presentedFrames;
+      } else if ((quality?.totalVideoFrames ?? 0) > 0) {
+        if (decoded === this.lastDecodedFrames && !healthProbe) return null;
+        this.lastDecodedFrames = decoded;
+      } else if (video.currentTime === this.lastVideoTime && !healthProbe) return null;
       this.lastVideoTime = video.currentTime;
       return captureVideoFrame(video, canvas);
     }

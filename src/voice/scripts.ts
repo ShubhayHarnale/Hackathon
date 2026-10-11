@@ -33,7 +33,9 @@ export const SCRIPTS = {
   resumed: "Okay, let's carry on.",
   nurseCalled: "Please tap Call my nurse to open your phone and place the call.",
   visionUnavailable:
-    "I'm having trouble checking the camera, so I've paused. Say \"continue\" to try again.",
+    "I'm having trouble checking the camera, so I've paused. Please wait while I reconnect.",
+  visionRecovered:
+    "Camera checks are working again. Say continue or tap Continue when you're ready.",
   completed: "All done. Thank you. Your study team will see that you finished.",
   stopCriticalMiss: "Please stop. Do not continue. Call your study nurse now.",
   stopNeedsHuman: "Please stop here. Your study nurse will help you with the next step.",

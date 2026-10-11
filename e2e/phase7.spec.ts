@@ -2,6 +2,10 @@ import { test, expect, type Page, type APIRequestContext } from "@playwright/tes
 import { resolve } from "node:path";
 import type axe from "axe-core";
 
+test.use({
+  launchOptions: { args: ["--use-fake-ui-for-media-stream", "--use-fake-device-for-media-stream"] },
+});
+
 async function accessible(page: Page) {
   await page.addScriptTag({ path: resolve("node_modules/axe-core/axe.min.js") });
   const violations = await page.evaluate(async () => {
@@ -259,4 +263,59 @@ test("vision outage pauses then stops and records study-team escalation", async 
   ).toBeVisible({ timeout: 40_000 });
   await page.goto(`/coordinator/sessions/${created.sessionId}`);
   await expect(page.getByText("needs human · Study team", { exact: true })).toBeVisible();
+});
+
+test.describe("live preview and checking recovery (fake camera, mock recognition)", () => {
+  test("keeps a large full-frame preview through ready, pause, and verified recovery", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/demo");
+    await page.getByRole("button", { name: "Start live camera demo" }).click();
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+    await page.getByRole("button", { name: "Allow camera and microphone", exact: true }).click();
+    await page.getByRole("button", { name: "Start my procedure" }).waitFor();
+    const camera = page.getByLabel("Your camera", { exact: true });
+    await expect(camera).toBeVisible();
+    const box = await camera.boundingBox();
+    expect(box!.width).toBeGreaterThan(580);
+    expect(box!.height).toBeGreaterThan(350);
+    expect(await camera.evaluate((el) => getComputedStyle(el).objectFit)).toBe("contain");
+    let failed = true;
+    await page.route("**/api/vision/check", async (route) => {
+      if (failed)
+        await route.fulfill({
+          status: 502,
+          contentType: "application/json",
+          body: JSON.stringify({ error: "network" }),
+        });
+      else await route.continue();
+    });
+    await page.getByRole("button", { name: "Start my procedure" }).click();
+    await expect(page.getByRole("heading", { name: "Paused", exact: true })).toBeVisible();
+    await expect(camera).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeDisabled();
+    await expect(
+      page.getByText("This pause is a checking problem; it does not mean you made a mistake."),
+    ).toBeVisible();
+    await accessible(page);
+    await page.screenshot({
+      path: "eval/readiness-videos/large-camera-checking-pause.png",
+      fullPage: true,
+    });
+    failed = false;
+    await expect(
+      page.getByText("Camera checks are working again. Tap Continue when you're ready."),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await expect(
+      page.getByRole("heading", { name: "Show both open hands to the camera", exact: true }),
+    ).toBeVisible();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(camera).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+      true,
+    );
+  });
 });

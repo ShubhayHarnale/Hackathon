@@ -2,7 +2,7 @@
 
 import { currentProgress, currentStep, type StopReason } from "@/engine";
 import type { Correction, PatientSnapshot } from "@/patient/controller";
-import { HEADINGS, LABELS, NOTES, stopReasonText } from "@/patient/copy";
+import { HEADINGS, LABELS, NOTES, VISION_FAILURE_NOTES, stopReasonText } from "@/patient/copy";
 import {
   awaitingDone,
   describeDuration,
@@ -249,12 +249,38 @@ export function PausedScreen({
   );
 }
 
-export function VisionUnavailableScreen({ onContinue }: { onContinue: () => void }) {
+export function VisionUnavailableScreen({
+  onContinue,
+  onRetryCamera,
+  snapshot,
+}: {
+  onContinue: () => void;
+  onRetryCamera: () => void;
+  snapshot: PatientSnapshot;
+}) {
+  const recovered = !snapshot.engine.vision.degraded && snapshot.visionError === null;
   return (
     <section className="flex flex-1 flex-col justify-center gap-8" role="alert">
       <ScreenHeading>{HEADINGS.visionUnavailable}</ScreenHeading>
       <Lead>{SCRIPTS.visionUnavailable}</Lead>
-      <BigButton onClick={onContinue}>{LABELS.continue}</BigButton>
+      <p className="text-xl">
+        {recovered
+          ? "Camera checks are working again. Tap Continue when you're ready."
+          : snapshot.visionError
+            ? VISION_FAILURE_NOTES[snapshot.visionError]
+            : "We're reconnecting to camera checking."}
+      </p>
+      <p className="text-xl text-muted">
+        This pause is a checking problem; it does not mean you made a mistake.
+      </p>
+      {snapshot.visionError === "camera" && (
+        <BigButton variant="secondary" onClick={onRetryCamera}>
+          Retry camera
+        </BigButton>
+      )}
+      <BigButton onClick={onContinue} disabled={!recovered}>
+        {LABELS.continue}
+      </BigButton>
     </section>
   );
 }

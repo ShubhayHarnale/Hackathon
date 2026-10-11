@@ -38,8 +38,18 @@ export function createHttpVisionProvider(options: HttpVisionOptions = {}): Visio
       } catch (error) {
         throw new VisionError(timeout.aborted ? "timeout" : toFrameErrorKind(error));
       }
-      if (!res.ok)
-        throw new VisionError(STATUS_KIND[res.status] ?? "provider", `HTTP ${res.status}`);
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        const reported = body?.error;
+        const kind =
+          reported === "network" ||
+          reported === "timeout" ||
+          reported === "rate_limited" ||
+          reported === "provider"
+            ? reported
+            : (STATUS_KIND[res.status] ?? "provider");
+        throw new VisionError(kind, `HTTP ${res.status}`);
+      }
       const body = FrameResultSchema.safeParse(await res.json().catch(() => null));
       if (!body.success) throw new VisionError("provider", "Malformed vision response");
       return body.data;

@@ -66,6 +66,9 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
       evidence: new EvidenceUploader({ send: httpSendEvidence(token) }),
     });
     media.label = () => currentStep(controller.runner.state)?.id ?? "";
+    media.checkPausedReplay = () =>
+      controller.runner.state.status === "paused" &&
+      controller.runner.state.pause?.reason === "vision_unavailable";
     const voice = new PatientVoice(controller, {
       onStatus: setVoiceStatus,
       createProvider: () => createVoiceProvider(undefined, { sessionToken: token }),
@@ -152,6 +155,10 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
   const showCamera =
     screen.kind === "camera_check" ||
     screen.kind === "step" ||
+    ((camera === "granted" || (replay && !!replayFile)) &&
+      (screen.kind === "ready" ||
+        screen.kind === "paused" ||
+        screen.kind === "vision_unavailable")) ||
     (replay && screen.kind === "permissions");
 
   return (
@@ -173,7 +180,9 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
         </p>
       )}
 
-      <main className="mx-auto flex w-full max-w-xl flex-1 flex-col gap-5 px-4 py-5">
+      <main
+        className={`mx-auto w-full flex-1 gap-5 px-4 py-5 ${showCamera ? "grid content-start lg:max-w-6xl lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start lg:gap-8" : "flex max-w-xl flex-col"}`}
+      >
         <CameraView
           attachVideo={attachVideo}
           visible={showCamera}
@@ -187,7 +196,6 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
               controller.dispatch({ type: "stop", at: Date.now(), by: "system" });
             }
           }}
-          compact={screen.kind === "step"}
         />
 
         {screen.kind === "welcome" && (
@@ -290,7 +298,11 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
           />
         )}
         {screen.kind === "vision_unavailable" && (
-          <VisionUnavailableScreen onContinue={() => controller.command("continue", "button")} />
+          <VisionUnavailableScreen
+            snapshot={snapshot}
+            onRetryCamera={() => void requestMedia()}
+            onContinue={() => controller.command("continue", "button")}
+          />
         )}
         {screen.kind === "stopped" && (
           <StoppedScreen
@@ -335,20 +347,18 @@ function CameraView({
   attachVideo,
   visible,
   live,
-  compact,
   replay = false,
   onEnded,
 }: {
   attachVideo: (el: HTMLVideoElement | null) => void;
   visible: boolean;
   live: boolean;
-  compact: boolean;
   replay?: boolean;
   onEnded: () => void;
 }) {
   // The <video> stays mounted on every screen so the stream survives screen changes.
   return (
-    <div className={visible ? "" : "hidden"}>
+    <div className={visible ? "w-full min-w-0" : "hidden"}>
       <video
         ref={attachVideo}
         playsInline
@@ -356,7 +366,7 @@ function CameraView({
         autoPlay={!replay}
         onEnded={onEnded}
         aria-label={replay ? "Recorded procedure preview" : "Your camera"}
-        className={`w-full ${replay ? "" : "-scale-x-100"} rounded-2xl bg-surface object-cover ${compact ? "max-h-[28dvh]" : "aspect-[4/3]"} ${live ? "" : "hidden"}`}
+        className={`aspect-[4/3] max-h-[65dvh] w-full ${replay ? "" : "-scale-x-100"} rounded-2xl bg-surface object-contain ${live ? "" : "hidden"}`}
       />
       {!live && visible && (
         <div className="flex min-h-20 items-center justify-center rounded-2xl border-2 border-dashed border-border bg-surface px-4 py-2 text-center text-xl text-muted">
