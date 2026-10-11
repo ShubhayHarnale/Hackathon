@@ -19,7 +19,17 @@ export interface VoiceStep {
   readonly spokenPrompt: string;
   readonly verification: Verification;
   readonly timerSeconds?: number | undefined;
+  /** Critical steps get corrections sooner in quiet mode. */
+  readonly critical?: boolean | undefined;
 }
+
+/**
+ * Quiet-mode patience: a correction is spoken only once the same problem has persisted
+ * for this many consecutive reports (about one per second), so a momentary slip passes
+ * silently. Critical steps speak up sooner. Stops are never delayed.
+ */
+const PATIENCE_FRAMES = { normal: 3, critical: 2 } as const;
+const PATIENCE_GAP_MS = 2500;
 
 export type VoiceLogEntry =
   | { readonly kind: "spoken"; readonly at: Millis; readonly utterance: QueuedUtterance }
@@ -105,6 +115,7 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
     clearInterval: (h) => clearInterval(h as ReturnType<typeof setInterval>),
   };
   const quiet = options.quiet ?? false;
+  let issueStreak: { key: string; count: number; at: Millis } | null = null;
   const countdownFrom = quiet ? 0 : Math.max(0, Math.min(5, options.countdownFrom ?? 3));
 
   const queue = new SpeechQueue({
@@ -204,6 +215,7 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
         return;
       case "step_activated": {
         stopCountdown();
+        issueStreak = null;
         queue.setStep(event.stepId);
         const prompt = stepPrompt(event.stepId);
         if (prompt && !quiet) say(prompt, FORCE);
@@ -233,7 +245,19 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
         });
         return;
       }
-      case "correction":
+      case "correction": {
+        if (quiet) {
+          const key = `${event.stepId}:${event.issue}`;
+          const t = now();
+          issueStreak =
+            issueStreak && issueStreak.key === key && t - issueStreak.at <= PATIENCE_GAP_MS
+              ? { key, count: issueStreak.count + 1, at: t }
+              : { key, count: 1, at: t };
+          const needed = stepsById.get(event.stepId)?.critical
+            ? PATIENCE_FRAMES.critical
+            : PATIENCE_FRAMES.normal;
+          if (issueStreak.count < needed) return;
+        }
         say({
           key: `issue:${event.issue}`,
           text: ISSUE_PHRASES[event.issue],
@@ -241,6 +265,7 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
           stepId: event.stepId,
         });
         return;
+      }
       case "hold_interrupted": {
         stopCountdown();
         // A critical hold that breaks stops the procedure; the stop line covers it.

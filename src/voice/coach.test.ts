@@ -410,7 +410,12 @@ describe("VoiceCoach in quiet mode (the patient app)", () => {
     await voice.finishAll();
     expect(voice.texts()).toEqual([]);
 
-    // Something needs fixing: the correction is spoken.
+    // A momentary problem passes silently (patience)...
+    sim.frame(null, { confidence: 0.2, issue: "hands_not_visible" });
+    sim.frame(null, { confidence: 0.2, issue: "hands_not_visible" });
+    await voice.finishAll();
+    expect(voice.texts()).toEqual([]);
+    // ...but a persistent one (about 3 seconds) is spoken.
     sim.frame(null, { confidence: 0.2, issue: "hands_not_visible" });
     await voice.finishAll();
     expect(voice.texts()).toEqual([ISSUE_PHRASES.hands_not_visible]);
