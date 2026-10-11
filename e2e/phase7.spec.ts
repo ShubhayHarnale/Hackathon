@@ -46,12 +46,15 @@ test("launcher is accessible in light/dark at a narrow viewport and supports key
 }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto("/demo");
-  await expect(page.getByRole("combobox", { name: "Procedure", exact: true })).toHaveValue(
-    "hands-only",
-  );
+  // The main path is one button; procedure and participant choices live under "More options".
+  await expect(page.getByRole("combobox", { name: "Procedure", exact: true })).toHaveCount(0);
   await expect(
     page.getByRole("combobox", { name: "Scripted scenario", exact: false }),
   ).not.toBeVisible();
+  await page.getByText("More options (for testing)").click();
+  await expect(page.getByRole("combobox", { name: "Procedure", exact: true })).toHaveValue(
+    "hands-only",
+  );
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
     await accessible(page);
