@@ -12,13 +12,16 @@ export async function POST(request: Request) {
 
   const expected = serverEnv().COORDINATOR_PASSCODE;
   if (expected && passcode !== expected) {
-    const url = new URL("/coordinator-login", request.url);
-    url.searchParams.set("next", next);
-    url.searchParams.set("error", "1");
-    return NextResponse.redirect(url, 303);
+    const query = new URLSearchParams({ next, error: "1" });
+    return new NextResponse(null, {
+      status: 303,
+      headers: { Location: `/coordinator-login?${query}` },
+    });
   }
 
-  const response = NextResponse.redirect(new URL(next, request.url), 303);
+  // Netlify can expose an internal deploy hostname in request.url. A relative redirect
+  // keeps the browser on its public origin, where this host-only cookie was set.
+  const response = new NextResponse(null, { status: 303, headers: { Location: next } });
   if (expected) {
     response.cookies.set(COORDINATOR_COOKIE, await coordinatorCookieValue(expected), {
       httpOnly: true,

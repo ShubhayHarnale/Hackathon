@@ -27,24 +27,48 @@
 
 - `NETLIFY_SETUP.md`: complete Supabase → local verification → Netlify setup.
 - `netlify.toml`: Node 22, configuration guard, Next.js build and `.next` publish directory.
-- `scripts/supabase-smoke.ts`: synthetic storage/event/evidence/alert/review test plus a
-  separate-process verification command. No hosted credentials are configured, so this
-  pass verified its missing-configuration handling rather than claiming hosted success.
+- `scripts/supabase-smoke.ts`: hosted synthetic storage/event/evidence/alert/review test
+  and separate-process verification both passed.
 - Ignored `eval/readiness-controls/report.json`: real Gemini negative-control verdicts.
 - Ignored `eval/readiness-videos/scripted-patient-walkthrough.mp4` and
   `scripted-critical-stop.mp4`: silent browser walkthroughs, synthetic and simulated.
   They are rehearsal clips, not prop recordings or Gemini recognition evidence. Media is
   kept outside Git and has not been published to a video host.
 
-## Still awaiting setup or physical inputs
+## Verified on Supabase and Netlify
 
-1. Create Supabase, run both migrations, set `.env.local`, seed and execute hosted smoke tests.
-2. Import the repository into Netlify, set Builds + Functions environment values, deploy,
-   and verify the HTTPS patient/coordinator flow and persistence across redeployment.
-3. Record a clean prop procedure and a critical-skip take, label them, run the corrected
+- Live demo: [Try Witness](https://witness-hackathon-shubhay.netlify.app/demo).
+- Supabase project `Witness-demo` (`wisyuvvlxggpjwjumofg`): all three migrations applied,
+  three synthetic participants and three published demo protocols seeded.
+- Private evidence upload and signed download, event/alert retry deduplication, persisted
+  stop reasons and flag/alert reviews passed, including a fresh-process read.
+- Hosted coordinator gating rejects anonymous API requests and redirects dashboard visits;
+  sign-in sets a secure httpOnly cookie. The hosted function reads the separately created
+  storage-test session.
+- Coordinator sign-in now uses relative redirects, keeping Netlify's internal deployment
+  hostname out of browser navigation so the cookie remains usable on the public site.
+  Three new redirect regression tests and seven provider-access tests passed; lint and the
+  Netlify production build passed.
+- The hosted browser's scripted happy walkthrough completed with 36 saved events and
+  nine evidence frames. After a second deployment, that record and both synthetic stopped
+  test sessions remained readable with their evidence and reviewed alerts.
+- Hosted session creation, patient event/evidence ingestion and coordinator review APIs
+  passed with a synthetic critical-skip fixture.
+- Hosted real Gemini vision returned no match for a blue empty frame (`camera_blocked`);
+  hosted Gemini compiler returned a valid three-step synthetic prop protocol. These verify
+  server configuration and connectivity, not physical procedure recognition accuracy.
+- Supabase advisor search-path warnings resolved by the third migration. Remaining
+  no-policy RLS notices are informational and intentional: tables deny browser access;
+  only the Next.js server uses the privileged key.
+- Local credentials and coordinator passcode are ignored by Git. Netlify secrets are
+  production-only. This deployment uses the CLI; GitHub auto-deploy is not connected.
+
+## Still awaiting physical inputs and Phase 8
+
+1. Record a clean prop procedure and a critical-skip take, label them, run the corrected
    Gemini evaluator, then rehearse both in real-time browser replay.
-4. Check the physical phone camera, microphone, speech recognition and screen reader.
-5. Publish an edited demonstration video and build the Phase 8 showcase.
+2. Check the physical phone camera, microphone, speech recognition and screen reader.
+3. Publish an edited demonstration video and build the Phase 8 showcase.
 
-Netlify and Supabase deployment acceptance is **pending**. Escalation is still mocked; no
+Netlify and Supabase are deployed and hosted API/storage checks passed. Escalation is still mocked; no
 texts or automatic calls are sent. No physical-device or clinical-validation claim is made.

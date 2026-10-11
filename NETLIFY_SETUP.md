@@ -1,5 +1,25 @@
 # Witness: Supabase + Netlify setup
 
+## Current deployment
+
+The Netlify project already exists:
+[witness-hackathon-shubhay](https://app.netlify.com/projects/witness-hackathon-shubhay).
+The app is live at [Try Witness](https://witness-hackathon-shubhay.netlify.app/demo).
+The local checkout is linked to this project; GitHub auto-deploy has not been connected.
+
+Production-only provider settings, the approved Gemini key, and a generated coordinator
+passcode are configured. The passcode is saved privately in the ignored file
+`.netlify/coordinator-passcode.local`. Supabase project `Witness-demo`
+(`wisyuvvlxggpjwjumofg`) is configured, migrated and seeded with synthetic data. Database,
+private storage, separate-process persistence, hosted API reviews, coordinator gating and
+real Gemini compiler/vision connectivity checks passed. Camera recognition of an actual
+prop procedure and physical-phone voice checks still require human testing.
+
+Share `/demo` with your teammate. Choose **Live camera** to use Gemini, or **Scripted demo**
+for simulated checks without camera permissions. The coordinator dashboard requires the
+private passcode; patient demos do not. Secrets remain in `.env.local` and Netlify's
+production environment, outside Git and the browser bundle.
+
 Netlify runs this Next.js app with its automatically installed OpenNext adapter, including
 App Router and API routes. Keep the app as a server app; do not use static export or a
 drag-and-drop deployment of source files. [Netlify Next.js documentation](https://docs.netlify.com/build/frameworks/framework-setup-guides/nextjs/overview/).
@@ -14,6 +34,7 @@ drag-and-drop deployment of source files. [Netlify Next.js documentation](https:
    in this order, against the new project:
    - `supabase/migrations/20261010000000_init.sql`
    - `supabase/migrations/20261010010000_phase7.sql`
+   - `supabase/migrations/20261011012058_harden_trigger_search_path.sql`
 4. Open **Storage** and confirm that an `evidence` bucket exists and is private. The first
    migration creates it; do not create a public replacement.
 5. Find the project URL via the project's **Connect** panel or API settings. Find/create a
@@ -61,6 +82,10 @@ confirm its record and evidence still exist. The Supabase script is a storage te
 a Gemini image-recognition test.
 
 ## 3. Import the GitHub repository into Netlify
+
+The existing project above can be deployed from the linked checkout with the Netlify CLI
+after configuration and storage verification. The steps below describe GitHub auto-deploy
+for a fresh project; do not create a duplicate when continuing the prepared project.
 
 1. Sign in at [Netlify](https://app.netlify.com/). Choose **Add new project → Import an
    existing project**, then GitHub. Authorize access to `ShubhayHarnale/Hackathon`.
@@ -118,7 +143,9 @@ After deploying, send the `https://…netlify.app` URL so the hosted checks can 
 
 - Local key/provider smoke checks passed for compilation, frame classification, and Live
   token creation; full prop-procedure recognition is still awaiting recordings.
-- Hosted Supabase and Netlify acceptance remains pending your project setup.
+- Hosted Supabase storage and separate-process persistence passed. Netlify is deployed;
+  hosted coordinator gating, synthetic session/evidence/review APIs, and real Gemini
+  compiler/vision negative-control requests passed.
 - Physical-device VoiceOver/TalkBack and microphone behavior remains pending.
 - Notifications remain simulated. No SMS, automatic phone calls, or unattended monitoring.
 
