@@ -1,7 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { visionFromQuery } from "./server";
+import { demoVisionFromQuery, visionFromQuery } from "./server";
 
 describe("patient source selection", () => {
+  it("defaults public demos to camera checks, even with an outcome or invalid source in the URL", () => {
+    for (const params of [
+      {},
+      { scenario: "happy" },
+      { scenario: "skip-critical" },
+      { vision: "invalid" },
+    ]) {
+      expect(demoVisionFromQuery(params)).toEqual({ kind: "server" });
+    }
+    expect(demoVisionFromQuery({ vision: "replay" })).toEqual({ kind: "replay" });
+    expect(demoVisionFromQuery({ vision: "scripted", scenario: "skip-critical" })).toEqual({
+      kind: "scripted",
+      scenario: "skip-critical",
+    });
+  });
   it("keeps persisted live and replay modes authoritative", () => {
     expect(visionFromQuery({ vision: "scripted" }, "live")).toEqual({ kind: "server" });
     expect(visionFromQuery({ vision: "server" }, "replay")).toEqual({ kind: "replay" });

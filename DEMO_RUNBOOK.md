@@ -1,37 +1,58 @@
 # Witness demo runbook
 
-Use synthetic participants and a pen-shaped prop only. No real medication or patient data.
+The primary demo uses only hands and a phone or laptop camera. Use synthetic participants;
+no medication, pen, labels, or other equipment is needed.
 
-## Local setup
+## Live teammate test
+
+Open [Try Witness](https://witness-hackathon-shubhay.netlify.app/demo). Keep the default
+**Hands-only camera demo**, choose a synthetic participant, then tap **Start live camera demo**.
+The hosted site uses Gemini. There is no outcome selector in the live flow.
+
+1. Prop up the device in good light, with both hands able to fit in the camera preview.
+2. Tap **Start**, allow the camera and optionally the microphone. Buttons remain available
+   if voice commands are unsupported. Browser speech reads the reviewed instructions.
+3. For camera practice, show **one open hand** until practice completes.
+4. Tap **Start my procedure**. Show **both open hands**, fingers spread and palms facing
+   the camera. Keep them visible until Witness advances.
+5. Give a **thumbs-up** with one hand; lower the other hand. Wait for confirmation.
+6. Close that hand into a **fist**, with your thumb folded across your fingers. Keep it
+   visible through the five-second verified hold until **All done** appears. Detection
+   requires consecutive observations, so the total time can exceed five seconds.
+7. Sign into the coordinator dashboard to see steps, timestamps and selected evidence.
+
+For a mistake test, return to `/demo` and launch a **fresh** session. Complete the one-hand
+practice. At the first real step, show a **thumbs-up instead of both open hands** and keep
+it visible. If Gemini consistently recognizes the later gesture, the same product engine
+stops for a critical miss and records evidence and simulated escalation. Do not choose a
+scripted failure. If it does not recognize the gesture, record that as a test failure;
+do not present simulated recognition as a real result.
+
+To film for the judges, record the screen and visible hand gestures during both runs,
+including the stop message and corresponding coordinator record. Use a second device to
+film, or screen recording if available; recording is optional for trying the app. Keep
+clips and extracted frames outside Git under ignored `eval/`.
+
+The demo shares the real patient camera, Gemini, voice, engine, persistence and review
+flow. The procedure is synthetic. **No texts or automatic calls are sent**, and the demo
+nurse number is fictional. Physical recognition accuracy and clinical use are not validated.
+
+## Local setup and developer rehearsal
 
 1. Install dependencies with `npm ci` (Node 22 LTS recommended).
-2. Copy `.env.example` to `.env.local` if needed. For a repeatable, keyless rehearsal use
-   `PERSISTENCE=memory`, `VISION_PROVIDER=mock`, `PROTOCOL_COMPILER=mock`, `NOTIFIER=mock`,
-   and `NEXT_PUBLIC_VOICE_PROVIDER=browser`.
+2. Configure `.env.local` for Gemini and Supabase, or use the keyless mock providers for
+   development. Mock camera checks are explicitly identified on the launcher.
 3. Run `npm run dev`, then open `/demo` and `/coordinator` in separate tabs.
 
-The default scripted demo asks for no camera or microphone permissions. It speaks prompts
-when browser speech synthesis is available; tap Done for spoken-confirmation steps. A new
-launch creates a fresh session. Existing session links cannot restart an already-recorded run.
-The coordinator dashboard requires the configured passcode if `COORDINATOR_PASSCODE` is set.
+Live camera is the default for both `/demo` and `/s/demo`. Each visit creates a fresh session.
+Existing patient links cannot restart an already-recorded run. The dashboard requires the
+configured coordinator passcode.
 
-## Suggested presentation (about 4 minutes)
-
-1. Explain: Witness guides a synthetic trial procedure one step at a time and records what
-   could be verified. The study team makes decisions when something cannot be verified.
-2. Open `/demo`. Choose Ruth, mock autoinjector, scripted source, and Everything goes right.
-   Start, complete the short simulated practice, then Start my procedure.
-3. Tap Done for the label and expiry checks. Show Pause/Continue and Repeat. Let the hold
-   finish while frames keep arriving. The session ends with All done.
-4. Open its coordinator record. Show the ordered steps, timestamps, evidence thumbnails,
-   and raw event log. Scripted evidence is visibly labeled as a demo frame.
-5. Launch a new demo with **Skips the first critical step**. After the two Done buttons, it
-   stops at the cleaning step. Show the critical flag and evidence.
-6. Show **Escalation alerts**: simulated study-team delivery plus Ruth's consented trusted
-   contact. Review an alert. This records a review; it does not change the procedure history.
-
-Say explicitly: **No texts or calls are sent.** The Call my nurse link opens the phone dialer;
-the demo number is fictional. A voice request pauses and asks the user to tap the call link.
+Open **Developer test tools** for recorded replay or scripted regression scenarios.
+Scripted tests ask for no camera/microphone access and do not test Gemini recognition.
+The older prop procedures remain available for broader rehearsals; they require their
+listed materials and pen practice. For the autoinjector scenario, tap Done for the label
+and expiry checks, then inspect evidence and simulated alerts in the dashboard.
 
 ## Additional demonstrations
 
@@ -50,7 +71,7 @@ monitor** for closed pages, sleeping phones, or indefinite user pauses.
 
 ## Recorded video replay
 
-Select Recorded video in `/demo` or create a replay link in the coordinator dashboard.
+Open Developer test tools and select Recorded video in `/demo` or create a replay link in the coordinator dashboard.
 Choose a local MP4/WebM supported by the browser and tap Start replay. Replay skips practice:
 the recording must begin with the first procedure step. The video is muted and never uploaded
 as a whole; sampled JPEGs go through the server vision route and selected evidence is stored.
@@ -71,13 +92,13 @@ alone. Rehearse the exact recording in the target browser before presenting.
 The selected host is Netlify. Follow [NETLIFY_SETUP.md](NETLIFY_SETUP.md) for account,
 migration, environment-variable and deployment steps.
 
-1. Apply **both** files in `supabase/migrations/`, in filename order. The phase 7 migration
+1. Apply **all** files in `supabase/migrations/`, in filename order. The phase 7 migration
    adds alert delivery receipts and the atomic `append_session_events` RPC.
 2. Set `PERSISTENCE=supabase`, `SUPABASE_URL`, and `SUPABASE_SECRET_KEY`, then `npm run seed`.
 3. Configure the same variables on the deployment and set a coordinator passcode.
 4. Verify a fresh patient link, evidence upload, signed evidence URL, alert, and review.
-   Confirm that the session survives an application restart. Hosted Supabase remains a
-   deployment acceptance check; local SQL tests do not validate Supabase Storage/PostgREST.
+   Confirm that the session survives an application restart. Hosted Supabase checks have passed; local SQL tests alone do not validate
+   Supabase Storage/PostgREST.
 5. Use HTTPS for live camera/microphone access on a phone. Use Supabase for shared persistence:
    the memory repository belongs to one process and is unsuitable for multi-instance hosting.
 
@@ -97,7 +118,7 @@ The browser suite starts a production server on port 3107 with mock providers. B
 time. Keep port 3107 free. If Chrome is already installed, use
 `PLAYWRIGHT_CHANNEL=chrome npm run test:e2e` instead of downloading Chromium.
 
-Database checks, on a disposable/local database after both migrations:
+Database checks, on a disposable/local database after all migrations:
 
 ```sh
 psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/verify-phase7.sql

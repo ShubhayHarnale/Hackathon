@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { PRACTICE_STEPS } from "@/demo";
+import { practiceStepsFor } from "@/demo";
 import { providerAccess } from "@/lib/provider-access";
 import { getRepository } from "@/persistence/server";
 import { VisionError } from "@/vision/errors";
@@ -30,7 +30,9 @@ export async function POST(request: Request) {
       access.session.protocolVersion,
     );
     if (!record) return Response.json({ error: "bad_request" }, { status: 400 });
-    const known = new Map([...record.protocol.steps, ...PRACTICE_STEPS].map((s) => [s.id, s]));
+    const known = new Map(
+      [...record.protocol.steps, ...practiceStepsFor(record.protocol)].map((s) => [s.id, s]),
+    );
     const current = known.get(checked.currentStep.id);
     const upcoming = checked.upcomingSteps.map((s) => known.get(s.id));
     if (!current || upcoming.some((s) => !s))

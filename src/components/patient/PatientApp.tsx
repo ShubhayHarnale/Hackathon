@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { DemoBanner } from "@/components/DemoBanner";
-import { PRACTICE_STEPS } from "@/demo";
+import { practiceStepsFor } from "@/demo";
 import { currentStep } from "@/engine";
 import { createVoiceProvider } from "@/voice";
 import { publicEnv } from "@/lib/env";
@@ -59,7 +59,7 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
       sessionId,
       sessionToken: token,
       steps: protocol.steps,
-      practiceSteps: PRACTICE_STEPS,
+      practiceSteps: practiceStepsFor(protocol),
       vision,
       capture: media.capture,
       outbox: new EventOutbox({ send: httpSendEvents(token) }),

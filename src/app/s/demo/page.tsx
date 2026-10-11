@@ -2,17 +2,17 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 import { PatientApp } from "@/components/patient/PatientApp";
 import { PatientLoading } from "@/components/patient/SessionMessage";
-import { visionFromQuery } from "@/patient/server";
+import { demoVisionFromQuery } from "@/patient/server";
+import { DEFAULT_DEMO_PROTOCOL_ID, DEMO_PROTOCOLS } from "@/demo";
 import { getRepository } from "@/persistence/server";
 
 const DEMO_PARTICIPANT = "p-001";
-const DEMO_PROTOCOL = "mock-autoinjector";
+const DEMO_PROTOCOL = DEFAULT_DEMO_PROTOCOL_ID;
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
 
 /**
- * One-tap demo: a fresh session for the demo participant and the mock autoinjector on
- * every visit. Scripted vision by default (no camera needed); `?vision=server` uses the
- * camera, `?scenario=<name>` picks a scripted scenario.
+ * A fresh live hands-only session on every visit. Scripted and replay sources must
+ * be explicitly selected through the developer tools.
  */
 export default function DemoSessionPage({ searchParams }: PageProps<"/s/demo">) {
   return (
@@ -28,12 +28,10 @@ export default function DemoSessionPage({ searchParams }: PageProps<"/s/demo">) 
 
 async function DemoSession({ query }: { query: Record<string, string | string[] | undefined> }) {
   await connection();
-  const vision = visionFromQuery(query, "mock");
+  const vision = demoVisionFromQuery(query);
   const repo = getRepository();
   const chosenProtocol = first(query.protocol);
-  const protocolId = ["mock-autoinjector", "mock-nasal-spray", "mock-inhaler"].includes(
-    chosenProtocol ?? "",
-  )
+  const protocolId = DEMO_PROTOCOLS.map((p) => p.id).includes(chosenProtocol ?? "")
     ? chosenProtocol!
     : DEMO_PROTOCOL;
   const chosenParticipant = first(query.participant);

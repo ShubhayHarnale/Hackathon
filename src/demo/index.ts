@@ -5,6 +5,7 @@ import mockAutoinjector from "./protocols/mock-autoinjector.json";
 import mockInhaler from "./protocols/mock-inhaler.json";
 import mockNasalSpray from "./protocols/mock-nasal-spray.json";
 import participantsJson from "./participants.json";
+import handsOnly from "./protocols/hands-only.json";
 
 /**
  * Synthetic demo data, shared by the in-memory repository and the Supabase seed script.
@@ -12,6 +13,7 @@ import participantsJson from "./participants.json";
  */
 
 export const DEMO_PROTOCOLS: readonly Protocol[] = [
+  handsOnly,
   mockAutoinjector,
   mockNasalSpray,
   mockInhaler,
@@ -47,6 +49,28 @@ export const PRACTICE_STEPS: readonly Step[] = [
     instruction: "Hold the pen up to the camera",
     spokenPrompt: "Now hold the pen up so the camera can see it.",
     successCriteria: "A pen-shaped object is held up in one hand and clearly visible.",
+    critical: false,
+    verification: "visual",
+  },
+];
+
+export const DEFAULT_DEMO_PROTOCOL_ID = handsOnly.id;
+
+/** Camera practice uses the materials required by the selected procedure. */
+export function practiceStepsFor(protocol: Pick<Protocol, "id">): readonly Step[] {
+  if (protocol.id !== DEFAULT_DEMO_PROTOCOL_ID) return PRACTICE_STEPS;
+  return HANDS_PRACTICE_STEPS;
+}
+
+const HANDS_PRACTICE_STEPS: readonly Step[] = [
+  {
+    id: "practice-show-one-hand",
+    order: 1,
+    instruction: "Show one open hand to the camera",
+    spokenPrompt:
+      "Let's check your camera. Hold up one open hand with your palm facing the camera.",
+    successCriteria:
+      "One open hand is clearly visible, with fingers extended and palm facing the camera.",
     critical: false,
     verification: "visual",
   },

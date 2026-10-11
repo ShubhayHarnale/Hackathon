@@ -60,5 +60,5 @@ export const NEEDS_HUMAN_REASON: Record<NeedsHumanCause, string> = {
   too_many_attempts: "This step was interrupted a few times.",
   step_timeout: "This step took longer than expected.",
   vision_outage: "I lost the connection needed to check your steps.",
-  hold_interrupted: "I couldn't see the pen being held for the full time.",
+  hold_interrupted: "I couldn't verify the hold for the full time.",
 };

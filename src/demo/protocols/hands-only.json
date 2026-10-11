@@ -1,0 +1,35 @@
+{
+  "id": "hands-only",
+  "title": "Hands-only camera demo",
+  "isDemo": true,
+  "steps": [
+    {
+      "id": "show-open-hands",
+      "order": 1,
+      "instruction": "Show both open hands to the camera",
+      "spokenPrompt": "Hold up both hands with your fingers spread and palms facing the camera. Keep them visible until I confirm this step.",
+      "successCriteria": "Two distinct open hands are clearly visible, palms facing the camera with fingers extended and spread. A thumbs-up or closed fist does not match this step.",
+      "critical": true,
+      "verification": "visual"
+    },
+    {
+      "id": "show-thumbs-up",
+      "order": 2,
+      "instruction": "Give a thumbs-up",
+      "spokenPrompt": "Now lower one hand and give a thumbs-up with the other. Keep your thumb up until I confirm this step.",
+      "successCriteria": "One hand makes a thumbs-up: four fingers curled into the palm and the thumb extended upward. A fully open hand or a fist with the thumb folded down does not match.",
+      "critical": false,
+      "verification": "visual"
+    },
+    {
+      "id": "hold-closed-fist",
+      "order": 3,
+      "instruction": "Make a fist and keep it visible",
+      "spokenPrompt": "Close that hand into a fist, with your thumb folded over your fingers. Keep it in view while I count five seconds, until I say you are done.",
+      "successCriteria": "One closed fist is clearly visible: fingers curled into the palm and thumb folded across the curled fingers, not extended upward. The other hand is lowered.",
+      "critical": true,
+      "verification": "visual",
+      "timerSeconds": 5
+    }
+  ]
+}

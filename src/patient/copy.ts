@@ -66,7 +66,7 @@ export function stopReasonText(
       const instruction = instructionFor(reason.missedStepId);
       const what =
         reason.cause === "hold_released_early"
-          ? "The pen was lifted before the time was up."
+          ? "The hold ended before the time was up."
           : instruction
             ? `I didn't see this step: ${instruction}.`
             : "I didn't see an important step.";

@@ -1,5 +1,5 @@
 /**
- * Seeds a Supabase project with the synthetic demo data (participants and the three demo
+ * Seeds a Supabase project with the synthetic demo data (participants and the demo
  * protocols, published as v1). Idempotent: safe to run again.
  *
  *   1. Apply supabase/migrations/*.sql (Supabase SQL editor, or `npx supabase db push`).

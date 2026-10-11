@@ -42,6 +42,12 @@ test("launcher is accessible in light/dark at a narrow viewport and supports key
 }) => {
   await page.setViewportSize({ width: 320, height: 740 });
   await page.goto("/demo");
+  await expect(page.getByRole("combobox", { name: "Procedure", exact: true })).toHaveValue(
+    "hands-only",
+  );
+  await expect(
+    page.getByRole("combobox", { name: "Scripted scenario", exact: false }),
+  ).not.toBeVisible();
   for (const colorScheme of ["light", "dark"] as const) {
     await page.emulateMedia({ colorScheme, reducedMotion: "reduce" });
     await accessible(page);
@@ -53,6 +59,43 @@ test("launcher is accessible in light/dark at a narrow viewport and supports key
   await page.keyboard.press("Tab");
   await expect(page.getByRole("combobox", { name: "Participant", exact: true })).toBeFocused();
 });
+
+test("default launcher creates a live hands-only session without selecting an outcome", async ({
+  page,
+}) => {
+  await page.goto("/demo");
+  await page.getByRole("button", { name: "Start live camera demo" }).click();
+  await expect(page.getByText("Hands-only camera demo", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Start", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Continue with simulated checks" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /Allow camera/ })).toBeVisible();
+});
+
+for (const scenario of ["happy", "skip-critical"]) {
+  test(`hands-only engine and coordinator pipeline (${scenario}, simulated recognition)`, async ({
+    page,
+    request,
+  }) => {
+    const created = await session(request, "p-001", "mock", "hands-only");
+    await startScript(page, created.link, scenario);
+    if (scenario === "happy") {
+      await expect(page.getByRole("heading", { name: "All done", exact: true })).toBeVisible({
+        timeout: 30_000,
+      });
+    } else {
+      await expect(
+        page.getByRole("heading").filter({ hasText: "Stop. Call your study nurse" }),
+      ).toBeVisible();
+    }
+    await page.goto(`/coordinator/sessions/${created.sessionId}`);
+    await expect(page.getByRole("link", { name: /Open evidence frame/ }).first()).toBeVisible();
+    if (scenario === "happy") {
+      await expect(page.getByText("All steps confirmed.", { exact: true })).toBeVisible();
+    } else {
+      await expect(page.getByText("critical miss · Study team", { exact: true })).toBeVisible();
+    }
+  });
+}
 
 for (const participantId of ["p-001", "p-002"]) {
   test(`critical stop persists evidence and honors contact consent (${participantId})`, async ({

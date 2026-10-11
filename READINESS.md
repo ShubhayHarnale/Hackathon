@@ -1,22 +1,27 @@
 # Readiness checks before the showcase
 
-See [NETLIFY_SETUP.md](NETLIFY_SETUP.md) for the selected hosting setup. No hosted database
-or site is configured yet. This file explains the remaining physical recording check.
+The site and Supabase are deployed. See [DEMO_RUNBOOK.md](DEMO_RUNBOOK.md) for the live
+hands-only teammate test and [NETLIFY_SETUP.md](NETLIFY_SETUP.md) for hosting configuration.
 
-## Record two prop takes
+## Record two hands-only takes
 
-Use ordinary props and a synthetic label, never real medication. Frame the hands, pen,
-and clothed thigh/prop surface clearly. Use the nine steps in
-`src/demo/protocols/mock-autoinjector.json`; this is a training demonstration only.
+Use the default `hands-only` protocol. No props or medication are needed. Record the
+actual camera run with Gemini, holding each gesture until the app confirms it.
 
-- **Clean take:** hold each visual action in view for about 8–10 seconds. Allow time for
-  the read-label and expiry button confirmations. Keep the press-hold action visible for
-  at least 18 seconds so three observations can start the 10-second hold.
-- **Critical skip take:** do the first three steps, omit clean-site, and visibly remove
-  the cap for at least 8–10 seconds. The expected result is a critical-miss stop at clean-site.
+- **Clean take:** two open hands, one thumbs-up, then one closed fist held through the
+  five verified seconds. Expected result: completed.
+- **Critical skip take:** after the separate one-open-hand camera practice, start a fresh
+  real procedure and show a thumbs-up instead of both open hands. Expected result:
+  critical-miss stop at `show-open-hands` if Gemini recognizes the skip consistently.
 
-These suggested recording durations are rehearsal starting points, not measured Gemini
-performance guarantees. Keep videos/frames under ignored `eval/`, outside Git.
+For offline replay, the recording must begin at the first real step; omit camera practice
+and setup screens. Allow generous time for observations and hold verification. Keep
+videos/frames under ignored `eval/`, outside Git. A live screen recording alone may not
+be a usable replay if it shows UI instead of a full camera view.
+
+The older nine-step `mock-autoinjector` protocol remains available as a prop rehearsal.
+The examples below show its verbal annotation format; the hands-only protocol needs no
+Done commands. Use `show-open-hands`, `show-thumbs-up`, `hold-closed-fist`, or `none` for its labels.
 
 ## Label and evaluate
 
@@ -62,7 +67,7 @@ or during pause are reported as unchecked, not silently counted as correct.
 
 This is **offline engine replay**, not a real-time browser replay: procedure time comes from
 annotations and API latency is reported separately. After it passes, rehearse both videos
-through `/demo` → Recorded video using Gemini, including Done taps. Check completion/stop,
+through `/demo` → Developer test tools → Recorded video using Gemini, including Done taps. Check completion/stop,
 evidence and escalation in the dashboard. Do not make accuracy claims from a black-frame
 smoke test or the scripted browser walkthrough.
 

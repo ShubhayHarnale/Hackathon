@@ -18,7 +18,7 @@ describe("MemoryRepository", () => {
   it("seeds the demo protocols as published v1", async () => {
     const r = repo();
     const list = await r.listProtocols();
-    expect(list).toHaveLength(3);
+    expect(list).toHaveLength(DEMO_PROTOCOLS.length);
     expect(list.every((p) => p.status === "published" && p.version === 1)).toBe(true);
   });
 

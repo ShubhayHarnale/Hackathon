@@ -29,6 +29,29 @@ describe("POST /api/vision/check (mock provider)", () => {
     expect(res.status).toBe(400);
   });
 
+  it("authorizes the hands-only camera practice and rejects unrelated pen practice", async () => {
+    vi.stubEnv("COORDINATOR_PASSCODE", "readiness-passcode");
+    const created = await getRepository().createSession({
+      participantId: "p-001",
+      protocolId: "hands-only",
+      mode: "live",
+    });
+    const check = (id: string) =>
+      POST(
+        new Request("http://test/api/vision/check", {
+          method: "POST",
+          headers: { authorization: `Bearer ${created.token}` },
+          body: JSON.stringify({
+            ...body(created.session.id),
+            currentStep: { id, instruction: "untrusted", successCriteria: "untrusted" },
+          }),
+        }),
+      );
+    expect((await check("practice-show-one-hand")).status).toBe(200);
+    expect((await check("practice-show-pen")).status).toBe(400);
+    expect((await check("show-open-hands")).status).toBe(200);
+  });
+
   it("rate-limits a session that sends too fast", async () => {
     const statuses: number[] = [];
     for (let i = 0; i < 8; i++) statuses.push((await post(body("route-burst"))).status);

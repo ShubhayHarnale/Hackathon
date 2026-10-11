@@ -22,6 +22,14 @@ type SearchParams = Record<string, string | string[] | undefined>;
 
 const first = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
+/** Public demos use actual camera checks unless a developer tool is explicitly selected. */
+export function demoVisionFromQuery(params: SearchParams): VisionConfig {
+  const source = first(params.vision);
+  return source === "scripted" || source === "replay"
+    ? visionFromQuery(params, "mock")
+    : { kind: "server" };
+}
+
 /**
  * Demo control from the query string: `?vision=scripted&scenario=<name>` (no camera
  * needed) or `?vision=server` (camera frames to /api/vision/check). Without one, mock
