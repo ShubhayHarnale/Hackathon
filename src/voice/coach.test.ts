@@ -387,3 +387,46 @@ describe("VoiceCoach without listening", () => {
     expect(voice.texts()).toEqual([prompt("wash-hands")]);
   });
 });
+
+describe("VoiceCoach in quiet mode (the patient app)", () => {
+  it("stays silent on routine steps and speaks only corrections, stops and Repeat", async () => {
+    const sim = new Sim(protocol.steps, { practiceSteps: PRACTICE_STEPS });
+    const voice = new FakeVoiceProvider();
+    const coach = createVoiceCoach({
+      provider: voice,
+      stepsById,
+      dispatch: (input) => sim.runner.dispatch(input),
+      now: () => sim.t,
+      getState: () => sim.runner.state,
+      quiet: true,
+    });
+    sim.runner.subscribe(coach.handleEvents);
+    coach.start();
+
+    // Routine progress: start, a confirmed visual step, a confirmed spoken step. Silence.
+    sim.start();
+    sim.frames("wash-hands", 3);
+    sim.say("read-label", "tap");
+    await voice.finishAll();
+    expect(voice.texts()).toEqual([]);
+
+    // Something needs fixing: the correction is spoken.
+    sim.frame(null, { confidence: 0.2, issue: "hands_not_visible" });
+    await voice.finishAll();
+    expect(voice.texts()).toEqual([ISSUE_PHRASES.hands_not_visible]);
+
+    // The participant asks: Repeat reads the current step's reviewed prompt.
+    coach.repeat();
+    await voice.finishAll();
+    expect(voice.texts().at(-1)).toContain(prompt("check-expiry"));
+
+    // A critical step is skipped: the stop line is spoken.
+    sim.say("check-expiry", "tap");
+    sim.frames("check-expiry", 3);
+    sim.frames("remove-cap", 3);
+    await voice.finishAll();
+    expect(sim.state.stopReason?.kind).toBe("critical_miss");
+    expect(voice.texts().at(-1)).toBe(SCRIPTS.stopCriticalMiss);
+    coach.dispose();
+  });
+});

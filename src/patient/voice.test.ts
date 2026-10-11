@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEMO_PROTOCOLS, PRACTICE_STEPS } from "@/demo";
-import { SCRIPTS } from "@/voice/scripts";
 import { FakeVoiceProvider, flush } from "@/voice/test-utils";
 import { PatientController } from "./controller";
 import { EvidenceUploader } from "./evidence";
@@ -61,7 +60,8 @@ describe("PatientVoice", () => {
     expect(statuses).toEqual(["listening"]);
 
     controller.start();
-    expect(provider.texts()[0]).toContain(protocol.steps[0]!.spokenPrompt);
+    // Quiet mode: routine steps are on screen, not spoken.
+    expect(provider.texts()).toEqual([]);
 
     provider.hear("pause");
     expect(controller.getSnapshot().engine.status).toBe("paused");
@@ -96,14 +96,16 @@ describe("PatientVoice", () => {
     controller.dispose();
   });
 
-  it("still speaks, without listening, when the microphone is denied", () => {
+  it("still speaks, without listening, when the microphone is denied", async () => {
     const { controller, provider, voice, statuses } = setup();
     voice.prime();
     voice.start(false);
     expect(provider.listening).toBe(false);
     expect(statuses).toEqual(["speak_only"]);
-    controller.startPractice();
-    expect(provider.texts()).toContain(SCRIPTS.practiceIntro);
+    controller.start();
+    controller.command("repeat", "button");
+    await flush();
+    expect(provider.texts().at(-1)).toContain(protocol.steps[0]!.spokenPrompt);
     voice.dispose();
     controller.dispose();
   });

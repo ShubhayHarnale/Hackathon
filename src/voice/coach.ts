@@ -56,6 +56,12 @@ export interface VoiceCoachOptions {
    * doesn't count down.
    */
   readonly getState?: () => EngineState;
+  /**
+   * Speak only when the participant needs to act on something: corrections, interrupted
+   * holds, checking problems, stops and nurse calls, plus anything they ask to Repeat.
+   * Routine prompts, confirmations, pauses and completion stay on screen only.
+   */
+  readonly quiet?: boolean;
   /** Same-key cooldown for the speech queue. Default 6000 ms. */
   readonly cooldownMs?: number;
   /** Count the last N seconds of a hold out loud (1..5). 0 turns it off. Default 3. */
@@ -98,7 +104,8 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
     setInterval: (fn, ms) => setInterval(fn, ms),
     clearInterval: (h) => clearInterval(h as ReturnType<typeof setInterval>),
   };
-  const countdownFrom = Math.max(0, Math.min(5, options.countdownFrom ?? 3));
+  const quiet = options.quiet ?? false;
+  const countdownFrom = quiet ? 0 : Math.max(0, Math.min(5, options.countdownFrom ?? 3));
 
   const queue = new SpeechQueue({
     speak: (u) => provider.speak(u),
@@ -188,20 +195,22 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
   function handleEvent(event: EngineEvent, s: EngineState, stopsInBatch: boolean): void {
     switch (event.type) {
       case "practice_started":
+        if (quiet) return;
         say({ key: "practice-intro", text: SCRIPTS.practiceIntro, priority: "prompt" }, FORCE);
         return;
       case "practice_completed":
+        if (quiet) return;
         say({ key: "practice-done", text: SCRIPTS.practiceDone, priority: "prompt" }, FORCE);
         return;
       case "step_activated": {
         stopCountdown();
         queue.setStep(event.stepId);
         const prompt = stepPrompt(event.stepId);
-        if (prompt) say(prompt, FORCE);
+        if (prompt && !quiet) say(prompt, FORCE);
         return;
       }
       case "step_observed":
-        if (!event.holding) return;
+        if (!event.holding || quiet) return;
         say(
           {
             key: `hold:${event.stepId}`,
@@ -215,6 +224,7 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
         return;
       case "step_confirmed": {
         if (countdown?.stepId === event.stepId) stopCountdown();
+        if (quiet) return;
         const wasHold = event.methods.includes("hold");
         say({
           key: `confirmed:${event.stepId}`,
@@ -253,10 +263,11 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
         // Nurse calls and vision outages announce themselves (see below).
         if (event.reason !== "user") return;
         queue.interrupt();
-        say({ key: "paused", text: SCRIPTS.paused, priority: "prompt" }, FORCE);
+        if (!quiet) say({ key: "paused", text: SCRIPTS.paused, priority: "prompt" }, FORCE);
         return;
       case "resumed": {
         queue.interrupt();
+        if (quiet) return;
         say({ key: "resumed", text: SCRIPTS.resumed, priority: "prompt" }, FORCE);
         // Say where they are again: after a pause they may not remember.
         const step = currentStep(s);
@@ -294,7 +305,7 @@ export function createVoiceCoach(options: VoiceCoachOptions): VoiceCoach {
       case "completed":
         stopCountdown();
         queue.setStep(null);
-        say({ key: "completed", text: SCRIPTS.completed, priority: "prompt" }, FORCE);
+        if (!quiet) say({ key: "completed", text: SCRIPTS.completed, priority: "prompt" }, FORCE);
         return;
       case "run_started":
       case "step_missed":

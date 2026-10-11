@@ -88,6 +88,8 @@ export class PatientVoice {
     const controller = this.controller;
     const coach = createVoiceCoach({
       provider,
+      // Older adults: speak up only when something needs their attention (or on Repeat).
+      quiet: true,
       stepsById: controller.stepsById,
       dispatch: (input) => controller.dispatch(input),
       now: () => Date.now(),
