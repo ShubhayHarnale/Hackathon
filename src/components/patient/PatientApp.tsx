@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { DemoBanner } from "@/components/DemoBanner";
 import { Wordmark } from "@/components/brand";
@@ -166,7 +167,17 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
     <div className="flex min-h-dvh flex-col">
       {(protocol.isDemo || scripted || replay) && <DemoBanner />}
       <header className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pt-4">
-        <Wordmark />
+        {/* Home link only when no procedure is underway, so a stray tap can't end a run. */}
+        {screen.kind === "welcome" ||
+        screen.kind === "completed" ||
+        screen.kind === "stopped" ||
+        screen.kind === "camera_denied" ? (
+          <Link href="/" aria-label="Witness home">
+            <Wordmark />
+          </Link>
+        ) : (
+          <Wordmark />
+        )}
         {(scripted || replay) && (
           <p className="rounded-full border-2 border-hairline bg-surface px-4 py-1.5 text-lg font-bold">
             {replay ? "Recorded video replay" : "Scripted demo — simulated checks"}

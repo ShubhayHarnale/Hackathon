@@ -30,7 +30,9 @@ export default function Home() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-5">
-        <Wordmark />
+        <Link href="/" aria-label="Witness home">
+          <Wordmark />
+        </Link>
         <nav aria-label="Main" className="flex items-center gap-2 text-lg">
           <Link
             href="/coordinator"

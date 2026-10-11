@@ -7,7 +7,7 @@ export default function CoordinatorLayout({ children }: LayoutProps<"/coordinato
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-20 border-b border-hairline bg-background/85 backdrop-blur-md">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-6 py-3">
-          <Link href="/coordinator" aria-label="Witness study team dashboard">
+          <Link href="/" aria-label="Witness home">
             <Wordmark suffix="Study team" />
           </Link>
           <DashboardNav />
