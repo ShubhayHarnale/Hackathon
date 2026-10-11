@@ -49,6 +49,8 @@
 
 ## Larger camera and checking recovery
 
+- From tablet width (768px), instructions sit beside the camera; narrow phone screens stack them. Chrome checks cover 768px, 900px and 1280px side-by-side layouts and a 390px phone layout.
+
 - The preview uses the full camera image without cropping, is larger during procedure
   steps, and sits beside instructions on laptops. Ready and paused screens keep it visible.
 - Freshness follows presented-frame callbacks, then non-dropped frame counts or media time.

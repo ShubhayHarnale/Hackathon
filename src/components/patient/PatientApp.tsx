@@ -181,7 +181,7 @@ export function PatientApp({ token, sessionId, protocol, vision }: PatientAppPro
       )}
 
       <main
-        className={`mx-auto w-full flex-1 gap-5 px-4 py-5 ${showCamera ? "grid content-start lg:max-w-6xl lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:items-start lg:gap-8" : "flex max-w-xl flex-col"}`}
+        className={`mx-auto w-full flex-1 gap-5 px-4 py-5 ${showCamera ? "grid content-start md:max-w-6xl md:grid-cols-2 md:items-start lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-8" : "flex max-w-xl flex-col"}`}
       >
         <CameraView
           attachVideo={attachVideo}

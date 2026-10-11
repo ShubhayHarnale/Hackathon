@@ -309,11 +309,32 @@ test.describe("live preview and checking recovery (fake camera, mock recognition
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeEnabled();
     await page.getByRole("button", { name: "Continue", exact: true }).click();
-    await expect(
-      page.getByRole("heading", { name: "Show both open hands to the camera", exact: true }),
-    ).toBeVisible();
+    const instruction = page.getByRole("heading", {
+      name: "Show both open hands to the camera",
+      exact: true,
+    });
+    await expect(instruction).toBeVisible();
+    for (const width of [1280, 900, 768]) {
+      await page.setViewportSize({ width, height: 900 });
+      const cameraBox = (await camera.boundingBox())!;
+      const instructionBox = (await instruction.boundingBox())!;
+      expect(instructionBox.x).toBeGreaterThan(cameraBox.x + cameraBox.width);
+      expect(instructionBox.y).toBeLessThan(cameraBox.y + cameraBox.height);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
+        true,
+      );
+      if (width === 1280)
+        await page.screenshot({
+          path: "eval/readiness-videos/camera-beside-instructions.png",
+          fullPage: true,
+        });
+    }
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(camera).toBeVisible();
+    const mobileCamera = (await camera.boundingBox())!;
+    expect((await instruction.boundingBox())!.y).toBeGreaterThanOrEqual(
+      mobileCamera.y + mobileCamera.height,
+    );
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(
       true,
     );
