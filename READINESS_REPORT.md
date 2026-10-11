@@ -38,6 +38,16 @@
 - Typecheck, lint and production build passed. Physical Gemini gesture recognition
   remains unverified until a person runs the camera demo. Notifications remain mocked.
 
+- Netlify production deploy `6acaeafbdb28a6194abf4eb1` is live. The hosted browser
+  defaults to Hands-only camera demo, launches the live patient flow, and shows camera
+  permissions rather than a simulated-check button.
+- Hosted coordinator sign-in and live hands-only session persistence passed. Two real
+  Gemini negative controls (practice and first procedure step) returned no match for an
+  empty blue frame, with no provider errors, in approximately 1.0 and 1.1 seconds.
+  This confirms the new contexts reach Gemini; it does not validate real hand recognition.
+- Ignored `eval/readiness-videos/netlify-hands-demo.png` captures the deployed launcher;
+  `.netlify/hands-demo-hosted-report.json` holds the synthetic hosted check results.
+
 ## Prepared artifacts
 
 - `NETLIFY_SETUP.md`: complete Supabase → local verification → Netlify setup.
